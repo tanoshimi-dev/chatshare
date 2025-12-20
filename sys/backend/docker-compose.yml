@@ -1,0 +1,187 @@
+services:
+    # PostgreSQL Database
+    postgres:
+        image: postgres:15-alpine
+        container_name: chatshare_postgres
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: chatshare
+            POSTGRES_PASSWORD: chatshare_password
+            POSTGRES_DB: chatshare_db
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        ports:
+            - "5432:5432"
+        networks:
+            - chatshare_network
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U chatshare -d chatshare_db"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # PostgreSQL Admin (pgAdmin)
+    pgadmin:
+        image: dpage/pgadmin4:latest
+        container_name: chatshare_pgadmin
+        restart: unless-stopped
+        environment:
+            PGADMIN_DEFAULT_EMAIL: admin@chatshare.com
+            PGADMIN_DEFAULT_PASSWORD: admin
+            PGADMIN_CONFIG_SERVER_MODE: "False"
+        volumes:
+            - pgadmin_data:/var/lib/pgadmin
+        ports:
+            - "5050:80"
+        networks:
+            - chatshare_network
+        depends_on:
+            - postgres
+
+    # Redis Cache
+    redis:
+        image: redis:7-alpine
+        container_name: chatshare_redis
+        restart: unless-stopped
+        command: redis-server --appendonly yes
+        volumes:
+            - redis_data:/data
+        ports:
+            - "6379:6379"
+        networks:
+            - chatshare_network
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # Redis Commander (Redis monitoring)
+    redis-commander:
+        image: rediscommander/redis-commander:latest
+        container_name: chatshare_redis_commander
+        restart: unless-stopped
+        environment:
+            REDIS_HOSTS: local:redis:6379
+        ports:
+            - "8081:8081"
+        networks:
+            - chatshare_network
+        depends_on:
+            - redis
+
+    # Backend API
+    backend:
+        build:
+            context: ./app
+            dockerfile: Dockerfile
+        container_name: chatshare_backend
+        restart: unless-stopped
+        environment:
+            - PORT=8080
+            - GIN_MODE=release
+            - ENVIRONMENT=production
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_USER=chatshare
+            - DB_PASSWORD=chatshare_password
+            - DB_NAME=chatshare_db
+            - DB_SSLMODE=disable
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - REDIS_PASSWORD=
+            - REDIS_DB=0
+            - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this}
+            - JWT_EXPIRATION=24h
+            - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+            - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+            - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost/api/v1/auth/google/callback}
+            - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
+            - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
+            - LINE_REDIRECT_URL=${LINE_REDIRECT_URL:-http://localhost/api/v1/auth/line/callback}
+            - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+            - FROM_EMAIL=${FROM_EMAIL:-noreply@chatshare.com}
+            - FROM_NAME=ChatShare
+            - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+            - RATE_LIMIT_REQUESTS=100
+            - RATE_LIMIT_DURATION=1m
+            - DEFAULT_PAGE_SIZE=20
+            - MAX_PAGE_SIZE=100
+        ports:
+            - "8080:8080"
+        networks:
+            - chatshare_network
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "wget",
+                    "--quiet",
+                    "--tries=1",
+                    "--spider",
+                    "http://localhost:8080/health",
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
+    # Nginx Reverse Proxy
+    nginx:
+        build:
+            context: ./nginx
+            dockerfile: Dockerfile
+        container_name: chatshare_nginx
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - nginx_logs:/var/log/nginx
+        networks:
+            - chatshare_network
+        depends_on:
+            - backend
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "wget",
+                    "--quiet",
+                    "--tries=1",
+                    "--spider",
+                    "http://localhost/health",
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
+    # Mailhog (Email testing in development)
+    mailhog:
+        image: mailhog/mailhog:latest
+        container_name: chatshare_mailhog
+        restart: unless-stopped
+        ports:
+            - "1025:1025" # SMTP server
+            - "8025:8025" # Web UI
+        networks:
+            - chatshare_network
+
+networks:
+    chatshare_network:
+        driver: bridge
+
+volumes:
+    postgres_data:
+        driver: local
+    pgadmin_data:
+        driver: local
+    redis_data:
+        driver: local
+    nginx_logs:
+        driver: local
