@@ -16,20 +16,38 @@ type DrawerParamList = {
   Detail: undefined;
 };
 
-type StackParamList = {
-  Home: undefined;
+type RootStackParamList = {
+  Main: undefined;
   Detail: undefined;
+  ShareDetail: { url: string };
 };
 
 type Props = {
   navigation: CompositeNavigationProp<
     DrawerNavigationProp<DrawerParamList>,
-    StackNavigationProp<StackParamList>
+    StackNavigationProp<RootStackParamList>
   >;
 };
 
 
 const ShareScreen = ({ navigation }: Props) => {
+  const handleOpenShareLink = (provider: 'claude' | 'chatgpt' | 'copilot') => {
+    let url = '';
+    
+    switch (provider) {
+      case 'claude':
+        url = 'https://claude.ai/share/a4c020d8-66a5-4f66-a655-b9e25244d78c';
+        break;
+      case 'chatgpt':
+        url = 'https://chatgpt.com/share/69466abd-6f9c-8008-b502-18bf3afcd716';
+        break;
+      case 'copilot':
+        url = 'https://copilot.microsoft.com/shares/1PavwW8cBhKsH9wEzCb4E';
+        break;
+    }
+    
+    navigation.navigate('ShareDetail', { url });
+  };
 
   return (
     <View style={styles.container}>
@@ -46,6 +64,27 @@ const ShareScreen = ({ navigation }: Props) => {
       </View>
       <View style={styles.content}>
         <Text style={styles.contentText}>Share Screen</Text>
+        
+        <TouchableOpacity
+          style={[styles.openButton, styles.claudeButton]}
+          onPress={() => handleOpenShareLink('claude')}>
+          <Icon name="open-in-new" size={24} color="#FFFFFF" />
+          <Text style={styles.openButtonText}>Open Claude Share</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.openButton, styles.chatgptButton]}
+          onPress={() => handleOpenShareLink('chatgpt')}>
+          <Icon name="open-in-new" size={24} color="#FFFFFF" />
+          <Text style={styles.openButtonText}>Open ChatGPT Share</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.openButton, styles.copilotButton]}
+          onPress={() => handleOpenShareLink('copilot')}>
+          <Icon name="open-in-new" size={24} color="#FFFFFF" />
+          <Text style={styles.openButtonText}>Open Copilot Share</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -86,6 +125,31 @@ const styles = StyleSheet.create({
   contentText: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 24,
+  },
+  openButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A8B896',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginVertical: 8,
+  },
+  claudeButton: {
+    backgroundColor: '#CC9B7A',
+  },
+  chatgptButton: {
+    backgroundColor: '#10A37F',
+  },
+  copilotButton: {
+    backgroundColor: '#8E75E8',
+  },
+  openButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
