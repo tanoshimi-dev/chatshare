@@ -27,16 +27,34 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={styles.drawerContent}>
-        {/* Add your menu items here */}
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuItemText}>Home</Text>
+        {/* Drawer Menu Items */}
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => {
+            props.navigation.closeDrawer();
+            props.navigation.navigate('Account');
+          }}>
+          <Icon name="account-circle" size={24} color="#333" style={styles.menuIcon} />
+          <Text style={styles.menuItemText}>Account</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuItemText}>Profile</Text>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => {
+            props.navigation.closeDrawer();
+            props.navigation.navigate('History');
+          }}>
+          <Icon name="history" size={24} color="#333" style={styles.menuIcon} />
+          <Text style={styles.menuItemText}>History</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => {
+            props.navigation.closeDrawer();
+            props.navigation.navigate('Settings');
+          }}>
+          <Icon name="settings" size={24} color="#333" style={styles.menuIcon} />
           <Text style={styles.menuItemText}>Settings</Text>
         </TouchableOpacity>
       </DrawerContentScrollView>
@@ -67,6 +85,11 @@ const styles = StyleSheet.create({
   menuItem: {
     paddingVertical: 16,
     paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuIcon: {
+    marginRight: 16,
   },
   menuItemText: {
     fontSize: 18,

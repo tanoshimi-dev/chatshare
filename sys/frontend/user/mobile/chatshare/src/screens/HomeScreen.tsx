@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   StyleSheet,
@@ -11,29 +11,39 @@ import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
+type DrawerParamList = {
+  Home: undefined;
+  Detail: undefined;
+};
+
+type StackParamList = {
+  Home: undefined;
+  Detail: undefined;
+};
+
 type Props = {
   navigation: CompositeNavigationProp<
-    DrawerNavigationProp<any>,
-    StackNavigationProp<any>
+    DrawerNavigationProp<DrawerParamList>,
+    StackNavigationProp<StackParamList>
   >;
 };
 
 const HomeScreen = ({ navigation }: Props) => {
-  const [selectedTab, setSelectedTab] = useState('home');
+  //const [selectedTab, setSelectedTab] = useState('home');
 
   const navigateToDetail = () => {
     navigation.navigate('Detail');
   };
 
   const renderContent = () => {
-    if (selectedTab === 'home') {
-      return null; // Empty for home
-    }
+    // if (selectedTab === 'home') {
+    //   return null; // Empty for home
+    // }
 
     // Render green content items for other tabs
     return (
       <ScrollView style={styles.scrollContent}>
-        {[1, 2, 3, 4, 5].map((item) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
           <TouchableOpacity
             key={item}
             style={styles.contentItem}
@@ -56,7 +66,6 @@ const HomeScreen = ({ navigation }: Props) => {
           onPress={() => navigation.openDrawer()}>
           <Icon name="menu" size={28} color="#333" />
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.notificationButton}>
           <Icon name="notifications-none" size={28} color="#333" />
         </TouchableOpacity>
@@ -68,7 +77,7 @@ const HomeScreen = ({ navigation }: Props) => {
       </View>
 
       {/* Bottom Action Bar */}
-      <View style={styles.bottomBar}>
+      {/* <View style={styles.bottomBar}>
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={() => setSelectedTab('home')}>
@@ -108,7 +117,7 @@ const HomeScreen = ({ navigation }: Props) => {
             color={selectedTab === 'favorite' ? '#000' : '#333'} 
           />
         </TouchableOpacity>
-      </View>
+      </View> */}
     </View>
   );
 };
