@@ -48,6 +48,9 @@ type Config struct {
 	// Frontend
 	FrontendURL string
 
+	// Firebase
+	FirebaseCredentialsPath string
+
 	// Rate Limiting
 	RateLimitRequests int
 	RateLimitDuration time.Duration
@@ -106,6 +109,8 @@ func LoadConfig() *Config {
 		FromName:       getEnv("FROM_NAME", "ChatShare"),
 
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+
+		FirebaseCredentialsPath: getEnv("FIREBASE_CREDENTIALS_PATH", ""),
 
 		RateLimitRequests: rateLimitRequests,
 		RateLimitDuration: rateLimitDuration,

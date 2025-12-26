@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/chatshare/backend/internal/config"
+	"github.com/chatshare/backend/internal/firebase"
 	"github.com/chatshare/backend/internal/handlers"
 	"github.com/chatshare/backend/internal/middleware"
 	"github.com/gin-gonic/gin"
@@ -9,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client) *gin.Engine {
+func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, firebaseService *firebase.FirebaseService) *gin.Engine {
 	r := gin.Default()
 
 	// Middleware
@@ -17,7 +18,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client) *gi
 	r.Use(middleware.RateLimitMiddleware(cfg, redisClient))
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(db, cfg)
+	authHandler := handlers.NewAuthHandler(db, cfg, redisClient, firebaseService)
 	userHandler := handlers.NewUserHandler(db, cfg)
 	chatHandler := handlers.NewChatHandler(db, cfg)
 	searchHandler := handlers.NewSearchHandler(db, cfg)
@@ -37,15 +38,18 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client) *gi
 		auth := v1.Group("/auth")
 		{
 			// Google OAuth
-			auth.GET("/google", authHandler.GoogleLogin)
-			auth.GET("/google/callback", authHandler.GoogleCallback)
+			auth.GET("/google/redirect", authHandler.GoogleLogin)
+			auth.POST("/google/callback", authHandler.GoogleCallback)
 
 			// LINE OAuth
-			auth.GET("/line", authHandler.LINELogin)
-			auth.GET("/line/callback", authHandler.LINECallback)
+			auth.GET("/line/redirect", authHandler.LINELogin)
+			auth.POST("/line/callback", authHandler.LINECallback)
 
 			// Current user (requires auth)
 			auth.GET("/me", middleware.AuthMiddleware(cfg), authHandler.GetCurrentUser)
+
+			// Logout
+			auth.POST("/logout", middleware.AuthMiddleware(cfg), authHandler.Logout)
 		}
 
 		// Public routes

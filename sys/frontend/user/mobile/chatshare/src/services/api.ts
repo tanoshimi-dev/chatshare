@@ -5,10 +5,44 @@
 const API_BASE_URL = 'http://192.168.0.241:8080/api/v1';
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
+  slug: string;
   description?: string;
-  // Add other fields based on your API response
+  icon?: string;
+  color?: string;
+  sort_order?: number;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Chat {
+  id: string;
+  user_id: string;
+  category_id: string;
+  title: string;
+  description?: string;
+  public_link: string;
+  is_link_valid?: boolean;
+  is_public?: boolean;
+  is_featured?: boolean;
+  status?: string;
+  view_count?: number;
+  share_count?: number;
+  favorite_count?: number;
+  comment_count?: number;
+  good_count?: number;
+  last_viewed_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RegisterChatRequest {
+  public_link: string;
+  category_id: string;
+  title: string;
+  description?: string;
 }
 
 export const fetchCategories = async (): Promise<Category[]> => {
@@ -28,6 +62,31 @@ export const fetchCategories = async (): Promise<Category[]> => {
     return apiResponseData.data;
   } catch (error) {
     console.error('Error fetching categories:', error);
+    throw error;
+  }
+};
+
+export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chats`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const apiResponseData = await response.json();
+    if (!apiResponseData.success) {
+      throw new Error(apiResponseData.message || 'API response indicates failure');
+    }
+    return apiResponseData.data;
+  } catch (error) {
+    console.error('Error registering chat:', error);
     throw error;
   }
 };

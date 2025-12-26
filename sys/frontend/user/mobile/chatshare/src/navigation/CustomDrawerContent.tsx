@@ -4,14 +4,39 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {
   DrawerContentScrollView,
   DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../contexts/AuthContext';
 
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
+  const { logout, user } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            props.navigation.closeDrawer();
+            await logout();
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Header with back button */}
@@ -57,6 +82,15 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
           <Icon name="settings" size={24} color="#333" style={styles.menuIcon} />
           <Text style={styles.menuItemText}>Settings</Text>
         </TouchableOpacity>
+
+        <View style={styles.separator} />
+
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={handleLogout}>
+          <Icon name="logout" size={24} color="#bd7517ff" style={styles.menuIcon} />
+          <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
+        </TouchableOpacity>
       </DrawerContentScrollView>
     </View>
   );
@@ -95,6 +129,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#333',
     fontWeight: '500',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    marginVertical: 12,
+    marginHorizontal: 24,
+  },
+  logoutText: {
+    color: '#d32f2f',
   },
 });
 
