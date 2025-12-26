@@ -88,7 +88,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={handleLogout}>
-          <Icon name="logout" size={24} color="#bd7517ff" style={styles.menuIcon} />
+          <Icon name="logout" size={24} color="#7c4803ff" style={styles.menuIcon} />
           <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
         </TouchableOpacity>
       </DrawerContentScrollView>
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
   },
   logoutText: {
-    color: '#d32f2f',
+    color: '#7c4803ff',
   },
 });
 
