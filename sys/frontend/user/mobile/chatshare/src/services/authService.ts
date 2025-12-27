@@ -1,6 +1,14 @@
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Config from 'react-native-config';
+import { Linking } from 'react-native';
+import { WebView } from "react-native-webview";
+
+// Declare global types for LINE OAuth
+declare global {
+  var lineLoginCallback: ((code: string) => void) | undefined;
+  var lineOAuthUrl: string | undefined;
+}
 
 const API_BASE_URL = Config.API_BASE_URL || 'http://localhost:8080/api/v1';
 
@@ -21,6 +29,20 @@ export const configureGoogleSignIn = () => {
     offlineAccess: true, // Required to get serverAuthCode for backend validation
     forceCodeForRefreshToken: true,
   });
+};
+
+// LINE Login configuration
+// Using OAuth web flow since native SDK has compatibility issues
+export const configureLineLogin = () => {
+  const channelId = Config.LINE_CHANNEL_ID;
+  
+  if (!channelId) {
+    console.warn('LINE_CHANNEL_ID is not configured in .env file');
+    return false;
+  }
+  
+  console.log('LINE Login configured for web flow');
+  return true;
 };
 
 export interface User {
@@ -93,6 +115,55 @@ export const signInWithGoogle = async (): Promise<AuthResponse> => {
     }
   }
 };
+
+// LINE Sign-In Flow (Web OAuth)
+// TODO: Implement full web-based OAuth flow when backend is ready
+// export const signInWithLine = async (): Promise<AuthResponse> => {
+//   try {
+//     console.log('Starting LINE Sign-In...');
+    
+//     const channelId = Config.LINE_CHANNEL_ID;
+//     if (!channelId) {
+//       throw new Error('LINE_CHANNEL_ID is not configured. Please add it to your .env file.');
+//     }
+
+//     // For now, create a mock user (will be replaced with actual OAuth flow)
+//     // In production, this will:
+//     // 1. Open LINE login page in WebView/Browser
+//     // 2. Get authorization code from callback
+//     // 3. Send to backend for token exchange
+//     // 4. Receive user profile from backend
+    
+//     console.log('LINE Sign-In - Mock mode (backend integration pending)');
+
+//     // Create mock auth response
+//     const mockUserId = `line_${Date.now()}`;
+//     const authResponse: AuthResponse = {
+//       token: `mock_token_line_${Date.now()}`,
+//       user: {
+//         id: mockUserId,
+//         email: `${mockUserId}@line.user`,
+//         name: 'LINE User (Demo)',
+//         avatar: '',
+//         provider: 'line',
+//         role: 'user',
+//         status: 'active',
+//         email_verified: false,
+//         created_at: new Date().toISOString(),
+//         updated_at: new Date().toISOString(),
+//       },
+//     };
+
+//     // Store token and user data
+//     await AsyncStorage.setItem('auth_token', authResponse.token);
+//     await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
+
+//     return authResponse;
+//   } catch (error: any) {
+//     console.error('LINE Sign-In error:', error);
+//     throw new Error(error.message || 'LINE sign-in failed');
+//   }
+// };
 
 // ORIGINAL BACKEND-VALIDATED FLOW (commented out for reference)
 /*
@@ -271,7 +342,7 @@ export const logout = async (): Promise<void> => {
     // Sign out from Google
     await GoogleSignin.signOut();
 
-    // Clear local storage
+    // Clear local storage (includes LINE session if any)
     await AsyncStorage.removeItem('auth_token');
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('oauth_state');
@@ -318,4 +389,94 @@ export const authenticatedFetch = async (
     ...options,
     headers,
   });
+};
+
+
+
+
+///////////////////
+// LINE Sign-In Flow (Production)
+export const signInWithLine = async (): Promise<AuthResponse> => {
+  try {
+    console.log("Starting LINE Sign-In...");
+    console.log("Using LINE Channel ID:", Config.LINE_CHANNEL_ID);
+    console.log("Using API Base URL:", API_BASE_URL);
+    // Step 1: Get OAuth URL from backend
+    const urlResponse = await fetch(`${API_BASE_URL}/auth/line/url`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!urlResponse.ok) {
+      throw new Error("Failed to get LINE OAuth URL");
+    }
+
+    const urlData = await urlResponse.json();
+    if (!urlData.success) {
+      throw new Error(urlData.message || "Failed to get OAuth URL");
+    }
+
+    const { url, state } = urlData.data;
+
+    // Store state for validation
+    await AsyncStorage.setItem("line_oauth_state", state);
+
+    // Step 2: Open LINE OAuth in browser/WebView
+    // This will be handled by LineLoginWebView component
+    return new Promise((resolve, reject) => {
+      // WebView will call this callback with the code
+      global.lineLoginCallback = async (code: string) => {
+        try {
+          // Step 3: Send code to backend
+          const callbackResponse = await fetch(
+            `${API_BASE_URL}/auth/line/callback`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                code,
+                state,
+              }),
+            }
+          );
+
+          if (!callbackResponse.ok) {
+            throw new Error("Failed to authenticate with backend");
+          }
+
+          const callbackData = await callbackResponse.json();
+          if (!callbackData.success) {
+            throw new Error(callbackData.message || "Authentication failed");
+          }
+
+          const authResponse: AuthResponse = callbackData.data;
+
+          // Step 4: Store token and user
+          await AsyncStorage.setItem("auth_token", authResponse.token);
+          await AsyncStorage.setItem("user", JSON.stringify(authResponse.user));
+          await AsyncStorage.removeItem("line_oauth_state");
+
+          resolve(authResponse);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      // Open LINE login (will be handled by navigation)
+      global.lineOAuthUrl = url;
+    });
+  } catch (error: any) {
+    console.error("LINE Sign-In error:", error);
+    throw new Error(error.message || "LINE sign-in failed");
+  }
+};
+
+// Helper to check if LINE login is available
+export const isLineLoginAvailable = (): boolean => {
+  const channelId = Config.LINE_CHANNEL_ID;
+  return !!channelId && API_BASE_URL !== "http://localhost:8080/api/v1";
 };

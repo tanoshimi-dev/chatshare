@@ -42,7 +42,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 			auth.POST("/google/callback", authHandler.GoogleCallback)
 
 			// LINE OAuth
-			auth.GET("/line/redirect", authHandler.LINELogin)
+			auth.GET("/line/url", authHandler.GetLINEOAuthURL)
 			auth.POST("/line/callback", authHandler.LINECallback)
 
 			// Current user (requires auth)

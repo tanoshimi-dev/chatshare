@@ -5,6 +5,7 @@ import DrawerNavigator from './DrawerNavigator';
 import DetailScreen from '../screens/DetailScreen';
 import ShareDetailScreen from '../screens/ShareDetailScreen';
 import { LoginScreen } from '../screens/LoginScreen';
+import { LineLoginWebView } from '../screens/LineLoginWebView';
 import { useAuth } from '../contexts/AuthContext';
 
 export type RootStackParamList = {
@@ -12,6 +13,9 @@ export type RootStackParamList = {
   Main: undefined;
   Detail: undefined;
   ShareDetail: { url: string };
+  LineLoginWebView: {
+    url: string;
+  };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -34,7 +38,17 @@ const RootNavigator = () => {
         cardStyle: { backgroundColor: 'transparent' },
       }}>
       {!isLoggedIn ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen 
+            name="LineLoginWebView" 
+            component={LineLoginWebView}
+            options={{
+              presentation: 'modal',
+              headerShown: false,
+            }}
+          />
+        </>
       ) : (
         <>
           <Stack.Screen name="Main" component={DrawerNavigator} />

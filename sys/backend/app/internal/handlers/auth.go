@@ -172,8 +172,9 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	})
 }
 
-// LINE OAuth
-func (h *AuthHandler) LINELogin(c *gin.Context) {
+// LINE OAuth - Get OAuth URL
+// GET /api/v1/auth/line/url
+func (h *AuthHandler) GetLINEOAuthURL(c *gin.Context) {
 	// Generate state token
 	state, err := utils.GenerateRandomString(32)
 	if err != nil {
@@ -191,9 +192,10 @@ func (h *AuthHandler) LINELogin(c *gin.Context) {
 	// Generate OAuth URL
 	url := h.lineConfig.AuthCodeURL(state)
 
+	// Return format matching the guide
 	utils.SuccessResponse(c, http.StatusOK, gin.H{
-		"redirect_url": url,
-		"state":        state,
+		"url":   url,
+		"state": state,
 	})
 }
 
