@@ -103,7 +103,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       id: 'dummy-user-123',
       email: 'dummy@example.com',
       name: 'Demo User',
-      picture: '',
+      avatar: '',
+      provider: 'dummy',
+      role: 'user',
+      status: 'active',
+      email_verified: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     setUser(dummyUser);
     setIsLoggedIn(true);

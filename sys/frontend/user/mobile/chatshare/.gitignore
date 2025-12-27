@@ -66,6 +66,16 @@ yarn-error.log
 # testing
 /coverage
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Google OAuth secrets (NEVER commit these!)
+**/client_secret*.json
+google-services.json
+GoogleService-Info.plist
+
 # Yarn
 .yarn/*
 !.yarn/patches

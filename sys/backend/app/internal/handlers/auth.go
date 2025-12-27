@@ -62,7 +62,7 @@ func NewAuthHandler(db *gorm.DB, cfg *config.Config, redisClient *redis.Client, 
 	}
 }
 
-// GoogleLogin generates OAuth URL with state token
+// GoogleLogin generates OAuth URL with state token and redirects to Google
 // GET /api/v1/auth/google/redirect
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	// Generate state token
@@ -82,10 +82,8 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	// Generate OAuth URL
 	url := h.googleConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 
-	utils.SuccessResponse(c, http.StatusOK, gin.H{
-		"redirect_url": url,
-		"state":        state,
-	})
+	// Perform HTTP 302 redirect to Google OAuth
+	c.Redirect(http.StatusFound, url)
 }
 
 // GoogleCallback handles the OAuth callback with state validation

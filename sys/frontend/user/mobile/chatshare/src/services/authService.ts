@@ -1,14 +1,24 @@
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from 'react-native-config';
 
-const API_BASE_URL = 'http://192.168.0.241:8080/api/v1';
+const API_BASE_URL = Config.API_BASE_URL || 'http://localhost:8080/api/v1';
 
 // Configure Google Sign-In
-// You need to configure this with your Google OAuth Client ID from Google Cloud Console
+// IMPORTANT: Use Web Client ID (OAuth 2.0 Web Application), NOT Android Client ID!
+// The Android client is used implicitly via SHA-1 configuration in Google Cloud Console
 export const configureGoogleSignIn = () => {
+  const webClientId = Config.GOOGLE_WEB_CLIENT_ID;
+  
+  if (!webClientId) {
+    throw new Error(
+      'GOOGLE_WEB_CLIENT_ID is not configured. Please create a .env file with your Google Web Client ID.'
+    );
+  }
+  
   GoogleSignin.configure({
-    webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com', // From Google Cloud Console
-    offlineAccess: true,
+    webClientId, // Web Client ID from .env file (type: Web application)
+    offlineAccess: true, // Required to get serverAuthCode for backend validation
     forceCodeForRefreshToken: true,
   });
 };
@@ -35,13 +45,81 @@ export interface AuthResponse {
 // Google Sign-In Flow following the sequence diagram
 export const signInWithGoogle = async (): Promise<AuthResponse> => {
   try {
+    // Simplified flow for testing without backend
+    // TODO: Implement full backend OAuth flow later
+    
+    console.log('Starting Google Sign-In...');
+    
+    // Sign in with Google using Google Sign-In SDK
+    await GoogleSignin.hasPlayServices();
+    const userInfo = await GoogleSignin.signIn();
+    
+    console.log('Google Sign-In successful:', userInfo.data);
+
+    // Create a mock auth response from Google user info
+    // In production, this should come from your backend after validating the serverAuthCode
+    const authResponse: AuthResponse = {
+      token: `mock_token_${Date.now()}`, // Mock JWT token
+      user: {
+        id: userInfo.data.user.id,
+        email: userInfo.data.user.email,
+        name: userInfo.data.user.name || '',
+        avatar: userInfo.data.user.photo || '',
+        provider: 'google',
+        role: 'user',
+        status: 'active',
+        email_verified: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    };
+
+    // Store token and user data
+    await AsyncStorage.setItem('auth_token', authResponse.token);
+    await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
+
+    return authResponse;
+  } catch (error: any) {
+    console.error('Google Sign-In error:', error);
+
+    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      throw new Error('Sign in cancelled');
+    } else if (error.code === statusCodes.IN_PROGRESS) {
+      throw new Error('Sign in already in progress');
+    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      throw new Error('Play Services not available');
+    } else {
+      throw error;
+    }
+  }
+};
+
+// ORIGINAL BACKEND-VALIDATED FLOW (commented out for reference)
+/*
+export const signInWithGoogle = async (): Promise<AuthResponse> => {
+  try {
     // Step 1: Request redirect URL with state from backend
-    const redirectResponse = await fetch(`${API_BASE_URL}/auth/google/redirect`);
+    console.log('Fetching redirect URL from:', `${API_BASE_URL}/auth/google/redirect`);
+    
+    const redirectResponse = await fetch(`${API_BASE_URL}/auth/google/redirect`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    }).catch((error) => {
+      console.error('Network error connecting to backend:', error);
+      throw new Error(`Cannot connect to backend at ${API_BASE_URL}. Is the server running? Error: ${error.message}`);
+    });
+
     if (!redirectResponse.ok) {
-      throw new Error('Failed to get redirect URL');
+      const errorText = await redirectResponse.text();
+      console.error('Backend error response:', errorText);
+      throw new Error(`Backend error (${redirectResponse.status}): ${errorText}`);
     }
 
     const redirectData = await redirectResponse.json();
+    console.log('Redirect response:', redirectData);
+    
     if (!redirectData.success) {
       throw new Error(redirectData.message || 'Failed to get redirect URL');
     }
@@ -116,6 +194,7 @@ export const signInWithGoogle = async (): Promise<AuthResponse> => {
     }
   }
 };
+*/
 
 // Get current authenticated user
 export const getCurrentUser = async (): Promise<User | null> => {
@@ -125,6 +204,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
       return null;
     }
 
+    // For now, return stored user since backend endpoints aren't ready
+    // TODO: Uncomment when backend is implemented
+    /*
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -143,6 +225,10 @@ export const getCurrentUser = async (): Promise<User | null> => {
     }
 
     return data.data;
+    */
+    
+    // For now, return stored user data
+    return await getStoredUser();
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
@@ -190,7 +276,9 @@ export const logout = async (): Promise<void> => {
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('oauth_state');
 
+    // TODO: Uncomment when backend is ready
     // Optionally call backend logout endpoint
+    /*
     const token = await getAuthToken();
     if (token) {
       await fetch(`${API_BASE_URL}/auth/logout`, {
@@ -200,6 +288,7 @@ export const logout = async (): Promise<void> => {
         },
       });
     }
+    */
   } catch (error) {
     console.error('Error during logout:', error);
     // Still clear local data even if backend call fails
