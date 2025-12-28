@@ -1,0 +1,11 @@
+# Google OAuth Configuration
+GOOGLE_WEB_CLIENT_ID=684998272240-blbifvj5l31r56e04gificvlk70h31ek.apps.googleusercontent.com
+
+# LINE Login Configuration
+# Get from https://developers.line.biz/console/
+LINE_CHANNEL_ID=2008786902
+LINE_CHANNEL_SECRET=7821a0102edf54489161c3d52b016833
+LINE_CALLBACK_URL=http://localhost:8080/api/v1/auth/line/callback
+
+# Backend API URL
+API_BASE_URL=http://192.168.0.241:8080/api/v1
