@@ -2,7 +2,10 @@
 // PCでifconfigで表示されたen0のinetアドレス。（PC ゲートウェイ 192.168.0.1）
 // スマホのゲートウェイアドレス（スマホゲートウェイ 192.168.0.1）
 //const API_BASE_URL = 'http://10.0.2.2:8080/api/v1';
-const API_BASE_URL = 'http://192.168.0.241:8080/api/v1';
+//const API_BASE_URL = 'http://192.168.0.241:8080/api/v1';
+//const API_BASE_URL = 'http://10.0.2.2:8080/api/v1';
+import Config from 'react-native-config';
+import EmulatorDetector from '../constants/EmulatorDetector';
 
 export interface Category {
   id: string;
@@ -45,7 +48,12 @@ export interface RegisterChatRequest {
   description?: string;
 }
 
+const API_BASE_URL = EmulatorDetector.getAPIUrl() || Config.API_BASE_URL || 'http://localhost:8080/api/v1';
+
+
 export const fetchCategories = async (): Promise<Category[]> => {
+
+
   try {
     const response = await fetch(`${API_BASE_URL}/categories`);
     

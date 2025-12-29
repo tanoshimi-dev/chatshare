@@ -1,6 +1,7 @@
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Config from 'react-native-config';
+import EmulatorDetector from '../constants/EmulatorDetector';
 import { Linking } from 'react-native';
 import { WebView } from "react-native-webview";
 
@@ -10,7 +11,9 @@ declare global {
   var lineOAuthUrl: string | undefined;
 }
 
-const API_BASE_URL = Config.API_BASE_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = EmulatorDetector.getAPIUrl() || Config.API_BASE_URL || 'http://localhost:8080/api/v1';
+//const API_BASE_URL = Config.API_BASE_URL || 'http://localhost:8080/api/v1';
+//const API_BASE_URL = 'http://10.0.2.2:8080/api/v1';
 
 // Configure Google Sign-In
 // IMPORTANT: Use Web Client ID (OAuth 2.0 Web Application), NOT Android Client ID!

@@ -17,7 +17,9 @@ import {
 } from '../services/authService';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
-import { Config } from 'react-native-config';
+// import { Config } from 'react-native-config';
+import Config from 'react-native-config';
+import EmulatorDetector from '../constants/EmulatorDetector';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<any>;
@@ -25,6 +27,9 @@ type LoginScreenProps = {
 };
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuccess }) => {
+
+  const API_BASE_URL = EmulatorDetector.getAPIUrl() || Config.API_BASE_URL || 'http://localhost:8080/api/v1';
+
   const [loading, setLoading] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
   const { dummyLogin } = useAuth();
@@ -185,10 +190,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
       }
     
       console.log("Using LINE Channel ID:", Config.LINE_CHANNEL_ID);
-      console.log("Using API Base URL:", `${Config.API_BASE_URL}/auth/line/url`);
+      //console.log("Using API Base URL:", `${Config.API_BASE_URL}/auth/line/url`);
+      console.log("Using API Base URL:", `${API_BASE_URL}/auth/line/url`);
 
       // Get OAuth URL from backend
-      const urlResponse = await fetch(`${Config.API_BASE_URL}/auth/line/url`);
+      //const urlResponse = await fetch(`${Config.API_BASE_URL}/auth/line/url`);
+      const urlResponse = await fetch(`${API_BASE_URL}/auth/line/url`);
       const urlData = await urlResponse.json();
 
       if (!urlData.success) {
