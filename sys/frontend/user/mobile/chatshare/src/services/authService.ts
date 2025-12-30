@@ -481,5 +481,11 @@ export const signInWithLine = async (): Promise<AuthResponse> => {
 // Helper to check if LINE login is available
 export const isLineLoginAvailable = (): boolean => {
   const channelId = Config.LINE_CHANNEL_ID;
-  return !!channelId && API_BASE_URL !== "http://localhost:8080/api/v1";
+  const apiBase = EmulatorDetector.getAPIUrl() || Config.API_BASE_URL || '';
+
+  // LINE login is considered available when a channel ID is configured
+  // and there is an API base URL configured (emulator detector or env).
+  // Do not rely on a hardcoded negative comparison; allow development hosts
+  // to be used — network failures will be surfaced when attempting the flow.
+  return !!channelId && !!apiBase;
 };
