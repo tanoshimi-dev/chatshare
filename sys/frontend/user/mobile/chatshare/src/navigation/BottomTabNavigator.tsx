@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import ShareScreen from '../screens/ShareScreen';
+import { RegisterScreen } from '../screens/RegisterScreen';
 import FavoriteScreen from '../screens/FavoriteScreen';
 
 const Tab = createBottomTabNavigator();
@@ -49,6 +50,15 @@ const BottomTabNavigator = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="share" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="add-circle" size={size} color={color} />
           ),
         }}
       />

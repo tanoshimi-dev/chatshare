@@ -6,6 +6,7 @@
 //const API_BASE_URL = 'http://10.0.2.2:8080/api/v1';
 import Config from 'react-native-config';
 import EmulatorDetector from '../constants/EmulatorDetector';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Category {
   id: string;
@@ -76,15 +77,26 @@ export const fetchCategories = async (): Promise<Category[]> => {
 
 export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => {
   try {
+    // Get auth token from AsyncStorage
+    const token = await AsyncStorage.getItem('auth_token');
+    
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
     const response = await fetch(`${API_BASE_URL}/chats`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please log in again.');
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
