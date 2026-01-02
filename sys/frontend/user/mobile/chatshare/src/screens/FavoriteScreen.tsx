@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,20 +6,29 @@ import {
   StatusBar,
   TouchableOpacity,
   Platform,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+  Image,
 } from 'react-native';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchFavoriteChats, Chat, removeFavorite } from '../services/chatService';
 
 type DrawerParamList = {
-  Home: undefined;
-  Detail: undefined;
+  Timeline: undefined;
+  Favorite: undefined;
+  Account: undefined;
 };
 
 type StackParamList = {
-  Home: undefined;
-  Detail: undefined;
+  Timeline: undefined;
+  Favorite: undefined;
+  ShareDetail: { url: string };
 };
 
 type Props = {
@@ -29,8 +38,142 @@ type Props = {
   >;
 };
 
-
 const FavoriteScreen = ({ navigation }: Props) => {
+  const { isLoggedIn } = useAuth();
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadFavorites();
+    } else {
+      setLoading(false);
+    }
+  }, [isLoggedIn]);
+
+  const loadFavorites = async () => {
+    try {
+      console.log('Fetching favorite chats...');
+      const data = await fetchFavoriteChats(1, 20);
+      console.log('Favorites loaded:', data?.length || 0);
+      setChats(data || []);
+    } catch (err: any) {
+      console.error('Error loading favorites:', err);
+      Alert.alert('Error', 'Failed to load favorites');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadFavorites();
+  };
+
+  const handleRemoveFavorite = async (chat: Chat) => {
+    try {
+      await removeFavorite(chat.id);
+      setChats(prevChats => prevChats.filter(c => c.id !== chat.id));
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to remove favorite');
+    }
+  };
+
+  const handleChatPress = (chat: Chat) => {
+    const url = chat.public_link || chat.url;
+    if (!url) {
+      Alert.alert('Error', 'This chat does not have a URL');
+      return;
+    }
+    navigation.navigate('ShareDetail', { url });
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  };
+
+  const getChatTypeTag = (chat: Chat): string => {
+    const chatType = chat.chat_type;
+    if (chatType === 'claude') return 'Claude';
+    if (chatType === 'copilot') return 'Copilot';
+    if (chatType === 'chatgpt') return 'ChatGPT';
+    return 'ChatGPT';
+  };
+
+  const getChatTypeColor = (chat: Chat): string => {
+    const chatType = chat.chat_type;
+    if (chatType === 'claude') return '#CC9B7A';
+    if (chatType === 'copilot') return '#8E75E8';
+    if (chatType === 'chatgpt') return '#10A37F';
+    return '#10A37F';
+  };
+
+  const renderChatItem = (item: Chat) => (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.chatItem}
+      onPress={() => handleChatPress(item)}>
+      <View style={styles.chatHeader}>
+        <View style={styles.tagContainer}>
+          <View style={[styles.tag, { backgroundColor: getChatTypeColor(item) }]}>
+            <Text style={styles.tagText}>{getChatTypeTag(item)}</Text>
+          </View>
+          {(item.category?.name || item.category_name) && (
+            <View style={styles.category}>
+              <Text style={styles.categoryText}>
+                {item.category?.name || item.category_name}
+              </Text>
+            </View>
+          )}
+        </View>
+        <TouchableOpacity
+          onPress={() => handleRemoveFavorite(item)}
+          style={styles.removeButton}>
+          <Icon name="favorite" size={20} color="#E74C3C" />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.chatContent} numberOfLines={2}>
+        {item.title || item.content}
+      </Text>
+
+      <View style={styles.chatFooter}>
+        <View style={styles.userInfo}>
+          <View style={styles.userAvatar}>
+            {(item.user?.avatar || item.user_avatar) ? (
+              <Image
+                source={{ uri: item.user?.avatar || item.user_avatar }}
+                style={styles.userAvatarImage}
+              />
+            ) : (
+              <Icon name="account-circle" size={24} color="#666" />
+            )}
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={styles.timestamp}>{formatDate(item.created_at)}</Text>
+            <Text style={styles.username}>
+              {item.user?.name || item.user_name || 'Anonymous'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.likeContainer}>
+          <Icon name="favorite-border" size={18} color="#666" />
+          <Text style={styles.likeCount}>
+            {item.good_count || item.likes_count || 0}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -45,9 +188,41 @@ const FavoriteScreen = ({ navigation }: Props) => {
           <Icon name="notifications-none" size={28} color="#333" />
         </TouchableOpacity>
       </View>
-      <View style={styles.content}>
-        <Text style={styles.contentText}>Favorites Screen</Text>
-      </View>
+
+      {!isLoggedIn ? (
+        <View style={styles.emptyContainer}>
+          <Icon name="favorite-border" size={64} color="#999" />
+          <Text style={styles.emptyText}>Please login to view favorites</Text>
+        </View>
+      ) : loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#A8B896" />
+          <Text style={styles.loadingText}>Loading favorites...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#A8B896']}
+              tintColor="#A8B896"
+            />
+          }>
+          {chats.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Icon name="favorite-border" size={64} color="#999" />
+              <Text style={styles.emptyText}>No favorites yet</Text>
+              <Text style={styles.emptySubText}>
+                Tap the heart icon on any chat to add it to favorites
+              </Text>
+            </View>
+          ) : (
+            chats.map(renderChatItem)
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -55,7 +230,7 @@ const FavoriteScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5DC',
+    backgroundColor: '#A8B896',
   },
   header: {
     flexDirection: 'row',
@@ -65,28 +240,139 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight ? StatusBar.currentHeight : 6),
     paddingBottom: 6,
     borderBottomWidth: 2,
-    borderBottomColor: '#A8B896', // Sage green border
+    borderBottomColor: '#A8B896',
     backgroundColor: '#F5F5DC',
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
   },
   menuButton: {
     padding: 8,
   },
   notificationButton: {
     padding: 8,
-  },  
-  content: {
+  },
+  scrollContent: {
+    flex: 1,
+    padding: 16,
+  },
+  chatItem: {
+    backgroundColor: '#F5F5DC',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  category: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#333',
+  },
+  removeButton: {
+    padding: 4,
+  },
+  chatContent: {
+    fontSize: 15,
+    color: '#333',
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  chatFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  userAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  userAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  userDetails: {
+    flexDirection: 'column',
+  },
+  timestamp: {
+    fontSize: 11,
+    color: '#555',
+  },
+  username: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  likeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  likeCount: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
   },
-  contentText: {
+  loadingText: {
+    marginTop: 16,
     fontSize: 16,
     color: '#666',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    marginTop: 100,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  emptySubText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
 });
 

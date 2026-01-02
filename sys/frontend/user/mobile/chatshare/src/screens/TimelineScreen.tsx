@@ -18,7 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchPublicChats, Chat } from '../services/chatService';
+import { fetchPublicChats, Chat, addFavorite, removeFavorite } from '../services/chatService';
 
 type DrawerParamList = {
   Timeline: undefined;
@@ -249,6 +249,38 @@ const TimelineScreen = ({ navigation }: Props) => {
     return '#10A37F'; // default to ChatGPT green
   };
 
+  const handleFavoriteToggle = async (chat: Chat) => {
+    if (!isLoggedIn) {
+      Alert.alert('Login Required', 'Please login to favorite chats');
+      return;
+    }
+
+    try {
+      const isFavorited = chat.is_favorited;
+      
+      // Optimistic update
+      setChats(prevChats =>
+        prevChats.map(c =>
+          c.id === chat.id ? { ...c, is_favorited: !isFavorited } : c
+        )
+      );
+
+      if (isFavorited) {
+        await removeFavorite(chat.id);
+      } else {
+        await addFavorite(chat.id);
+      }
+    } catch (error: any) {
+      // Revert on error
+      setChats(prevChats =>
+        prevChats.map(c =>
+          c.id === chat.id ? { ...c, is_favorited: chat.is_favorited } : c
+        )
+      );
+      Alert.alert('Error', error.message || 'Failed to update favorite');
+    }
+  };
+
   const renderChatItem = (item: Chat) => (
     <TouchableOpacity
       key={item.id}
@@ -299,11 +331,22 @@ const TimelineScreen = ({ navigation }: Props) => {
           </View>
         </View>
 
-        <View style={styles.likeContainer}>
-          <Icon name="favorite-border" size={18} color="#666" />
-          <Text style={styles.likeCount}>
-            {item.good_count || item.likes_count || 0}
-          </Text>
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={() => handleFavoriteToggle(item)}>
+            <Icon
+              name={item.is_favorited ? 'favorite' : 'favorite-border'}
+              size={20}
+              color={item.is_favorited ? '#E74C3C' : '#666'}
+            />
+          </TouchableOpacity>
+          <View style={styles.likeContainer}>
+            <Icon name="favorite-border" size={18} color="#666" />
+            <Text style={styles.likeCount}>
+              {item.good_count || item.likes_count || 0}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -537,6 +580,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#333',
     fontWeight: '500',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  favoriteButton: {
+    padding: 4,
   },
   likeContainer: {
     flexDirection: 'row',

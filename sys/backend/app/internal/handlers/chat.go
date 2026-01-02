@@ -46,9 +46,6 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		return
 	}
 
-	// Auto-detect chat type from URL
-	chatType := utils.DetectChatTypeFromURL(req.PublicLink)
-
 	chat := database.Chat{
 		ID:          uuid.New(),
 		UserID:      userID.(uuid.UUID),
@@ -56,7 +53,6 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		Title:       req.Title,
 		Description: req.Description,
 		PublicLink:  req.PublicLink,
-		ChatType:    chatType,
 		IsPublic:    req.IsPublic,
 		IsLinkValid: true,
 		Status:      "active",
@@ -161,6 +157,17 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 		query = query.Where("title ILIKE ? OR description ILIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 
+	// Filter by favorites (requires authentication)
+	if favorite := c.Query("favorite"); favorite == "true" {
+		userID, exists := c.Get("user_id")
+		if !exists {
+			utils.ErrorResponse(c, http.StatusUnauthorized, "Authentication required")
+			return
+		}
+		query = query.Joins("JOIN favorites ON favorites.chat_id = chats.id").
+			Where("favorites.user_id = ?", userID)
+	}
+
 	// Count total
 	var total int64
 	query.Count(&total)
@@ -172,6 +179,29 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 		Order("created_at DESC").Find(&chats).Error; err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch chats")
 		return
+	}
+
+	// Mark chats as favorited if user is logged in
+	userID, exists := c.Get("user_id")
+	if exists {
+		chatIDs := make([]uuid.UUID, len(chats))
+		for i, chat := range chats {
+			chatIDs[i] = chat.ID
+		}
+
+		var favorites []database.Favorite
+		h.db.Where("user_id = ? AND chat_id IN ?", userID, chatIDs).Find(&favorites)
+
+		favoriteMap := make(map[uuid.UUID]bool)
+		for _, fav := range favorites {
+			favoriteMap[fav.ChatID] = true
+		}
+
+		for i := range chats {
+			if favoriteMap[chats[i].ID] {
+				chats[i].IsFavorited = true
+			}
+		}
 	}
 
 	utils.PaginatedSuccessResponse(c, http.StatusOK, chats, page, pageSize, total)

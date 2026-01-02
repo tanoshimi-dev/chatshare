@@ -39,6 +39,7 @@ export interface Chat {
   chat_type?: string; // chatgpt, claude, copilot
   is_public: boolean;
   is_link_valid: boolean;
+  is_favorited?: boolean;
   status: string;
   good_count?: number;
   view_count?: number;
@@ -98,14 +99,22 @@ export const fetchPublicChats = async (
   try {
     console.log('Fetching from:', `${API_BASE_URL}/chats?page=${page}&page_size=${limit}`);
     
+    // Include auth token if available to get favorite status
+    const token = await AsyncStorage.getItem('auth_token');
+    const headers: HeadersInit = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(
       `${API_BASE_URL}/chats?page=${page}&page_size=${limit}`,
       {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers,
       }
     );
 
@@ -312,6 +321,106 @@ export const searchChats = async (
     return data.data.chats;
   } catch (error) {
     console.error('Error searching chats:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add a chat to favorites
+ */
+export const addFavorite = async (chatId: string): Promise<void> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/favorite`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to add favorite');
+    }
+  } catch (error) {
+    console.error('Error adding favorite:', error);
+    throw error;
+  }
+};
+
+/**
+ * Remove a chat from favorites
+ */
+export const removeFavorite = async (chatId: string): Promise<void> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/favorite`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to remove favorite');
+    }
+  } catch (error) {
+    console.error('Error removing favorite:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch user's favorite chats
+ */
+export const fetchFavoriteChats = async (
+  page: number = 1,
+  limit: number = 20
+): Promise<Chat[]> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/chats?favorite=true&page=${page}&page_size=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch favorite chats: ${response.status}`);
+    }
+
+    const data: ChatListResponse = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to fetch favorite chats');
+    }
+
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching favorite chats:', error);
     throw error;
   }
 };

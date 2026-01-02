@@ -74,6 +74,9 @@ type Chat struct {
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
+	// Non-persisted fields
+	IsFavorited     bool           `gorm:"-" json:"is_favorited,omitempty"`
+
 	// Relationships
 	User            User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Category        Category       `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
