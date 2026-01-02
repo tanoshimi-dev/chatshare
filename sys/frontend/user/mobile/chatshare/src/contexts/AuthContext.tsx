@@ -100,11 +100,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const dummyLogin = () => {
     const dummyUser: User = {
-      id: 'dummy-user-123',
+      id: '0',
       email: 'dummy@example.com',
       name: 'Demo User',
-      avatar: '',
-      provider: 'dummy',
+      avatar: '', // Use Material icon account-circle as default
+      provider: '',
       role: 'user',
       status: 'active',
       email_verified: true,

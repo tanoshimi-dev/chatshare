@@ -32,7 +32,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
 
   const [loading, setLoading] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
-  const { dummyLogin } = useAuth();
+  const { dummyLogin, refreshUser } = useAuth();
 
   React.useEffect(() => {
     // Configure Google Sign-In and LINE Login when component mounts
@@ -87,11 +87,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             Alert.alert('Success', `Welcome ${authResponse.user.name}!`, [
               {
                 text: 'OK',
-                onPress: () => {
+                onPress: async () => {
+                  await refreshUser();
                   if (onLoginSuccess) {
                     onLoginSuccess();
-                  } else {
-                    navigation.navigate('Home');
                   }
                 },
               },
@@ -123,11 +122,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
         [
           {
             text: 'OK',
-            onPress: () => {
+            onPress: async () => {
+              await refreshUser();
               if (onLoginSuccess) {
                 onLoginSuccess();
-              } else {
-                navigation.navigate('Home');
               }
             },
           },
