@@ -70,39 +70,59 @@ export interface AuthResponse {
 // Google Sign-In Flow following the sequence diagram
 export const signInWithGoogle = async (): Promise<AuthResponse> => {
   try {
-    // Simplified flow for testing without backend
-    // TODO: Implement full backend OAuth flow later
-    
     console.log('Starting Google Sign-In...');
     
     // Sign in with Google using Google Sign-In SDK
     await GoogleSignin.hasPlayServices();
     const userInfo = await GoogleSignin.signIn();
     
-    console.log('Google Sign-In successful:', userInfo.data);
+    console.log('Google Sign-In successful - Full response:', userInfo);
+    console.log('Server auth code from userInfo:', userInfo.serverAuthCode);
+    console.log('Server auth code from userInfo.data:', userInfo.data?.serverAuthCode);
 
-    // Create a mock auth response from Google user info
-    // In production, this should come from your backend after validating the serverAuthCode
-    const authResponse: AuthResponse = {
-      token: `mock_token_${Date.now()}`, // Mock JWT token
-      user: {
-        id: userInfo.data.user.id,
-        email: userInfo.data.user.email,
-        name: userInfo.data.user.name || '',
-        avatar: userInfo.data.user.photo || '',
-        provider: 'google',
-        role: 'user',
-        status: 'active',
-        email_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+    // Get the server auth code to send to backend
+    // In newer versions, serverAuthCode might be in userInfo.data
+    const serverAuthCode = userInfo.serverAuthCode || userInfo.data?.serverAuthCode;
+    
+    if (!serverAuthCode) {
+      console.error('userInfo structure:', JSON.stringify(userInfo, null, 2));
+      throw new Error('Failed to get server auth code from Google');
+    }
+
+    // Send the auth code to backend for validation and token generation
+    console.log('Sending auth code to backend...');
+    const callbackResponse = await fetch(`${API_BASE_URL}/auth/google/callback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    };
+      body: JSON.stringify({
+        code: serverAuthCode,
+      }),
+    });
+
+    console.log('Backend response status:', callbackResponse.status);
+
+    if (!callbackResponse.ok) {
+      const errorText = await callbackResponse.text();
+      console.error('Backend error response:', errorText);
+      throw new Error(`Failed to authenticate with backend: ${callbackResponse.status}`);
+    }
+
+    const callbackData = await callbackResponse.json();
+    console.log('Backend response:', callbackData);
+
+    if (!callbackData.success) {
+      throw new Error(callbackData.message || 'Authentication failed');
+    }
+
+    const authResponse: AuthResponse = callbackData.data;
 
     // Store token and user data
     await AsyncStorage.setItem('auth_token', authResponse.token);
     await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
 
+    console.log('Google authentication completed successfully');
     return authResponse;
   } catch (error: any) {
     console.error('Google Sign-In error:', error);

@@ -17,6 +17,7 @@ import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { fetchCategories, registerChat, Category } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 type DrawerParamList = {
   Home: undefined;
@@ -35,6 +36,7 @@ type RegisterScreenProps = {
 };
 
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
+  const { user, isLoggedIn } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [title, setTitle] = useState('');
@@ -89,12 +91,35 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   };
 
   const handleShare = async () => {
+    // Check if user is logged in
+    if (!isLoggedIn || !user) {
+      Alert.alert(
+        'Login Required',
+        'You need to be logged in to register a chat. Please log in first.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Go to Login',
+            onPress: () => {
+              // Navigation will automatically redirect to login screen
+              // because RootNavigator checks isLoggedIn state
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     if (!validateInputs()) {
       return;
     }
 
     setLoading(true);
     try {
+      console.log('Registering chat for user:', user.email);
       await registerChat({
         category_id: selectedCategory,
         title: title,
@@ -117,10 +142,27 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       );
     } catch (error: any) {
       console.error('Registration error:', error);
-      Alert.alert(
-        'Registration Failed',
-        error.message || 'An error occurred while registering the chat link. Please try again.'
-      );
+      
+      // Check if it's an authentication error
+      if (error.message?.includes('Authentication failed') || error.message?.includes('No authentication token')) {
+        Alert.alert(
+          'Authentication Error',
+          'Your session has expired. Please log in again.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // User will be redirected to login by RootNavigator
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Registration Failed',
+          error.message || 'An error occurred while registering the chat link. Please try again.'
+        );
+      }
     } finally {
       setLoading(false);
     }

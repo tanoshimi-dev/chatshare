@@ -80,6 +80,11 @@ export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => 
     // Get auth token from AsyncStorage
     const token = await AsyncStorage.getItem('auth_token');
     
+    console.log('RegisterChat - Token exists:', !!token);
+    console.log('RegisterChat - Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+    console.log('RegisterChat - API URL:', `${API_BASE_URL}/chats`);
+    console.log('RegisterChat - Request data:', JSON.stringify(data, null, 2));
+    
     if (!token) {
       throw new Error('No authentication token found. Please log in again.');
     }
@@ -93,7 +98,12 @@ export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => 
       body: JSON.stringify(data),
     });
     
+    console.log('RegisterChat - Response status:', response.status);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('RegisterChat - Error response:', errorText);
+      
       if (response.status === 401) {
         throw new Error('Authentication failed. Please log in again.');
       }
@@ -101,6 +111,8 @@ export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => 
     }
     
     const apiResponseData = await response.json();
+    console.log('RegisterChat - Success response:', JSON.stringify(apiResponseData, null, 2));
+    
     if (!apiResponseData.success) {
       throw new Error(apiResponseData.message || 'API response indicates failure');
     }

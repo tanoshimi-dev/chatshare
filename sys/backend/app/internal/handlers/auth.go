@@ -88,11 +88,12 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 
 // GoogleCallback handles the OAuth callback with state validation
 // POST /api/v1/auth/google/callback
+// Supports both web OAuth flow (with state) and mobile SDK flow (without state)
 func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	// Parse request body
 	var req struct {
 		Code  string `json:"code" binding:"required"`
-		State string `json:"state" binding:"required"`
+		State string `json:"state"` // Optional for mobile apps
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -100,22 +101,46 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	// Validate state token
 	ctx := context.Background()
-	valid, err := h.sessionStore.ValidateAndDeleteState(ctx, req.State)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to validate state")
-		return
-	}
-	if !valid {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid or expired state token")
-		return
+
+	// If state is provided (web flow), validate it
+	// If state is not provided (mobile SDK flow), skip validation
+	if req.State != "" {
+		// Validate state token for web OAuth flow
+		valid, err := h.sessionStore.ValidateAndDeleteState(ctx, req.State)
+		if err != nil {
+			utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to validate state")
+			return
+		}
+		if !valid {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid or expired state token")
+			return
+		}
 	}
 
 	// Exchange authorization code for token
-	token, err := h.googleConfig.Exchange(ctx, req.Code)
+	var token *oauth2.Token
+	var err error
+	
+	// Mobile SDK flow (no state): use empty redirect URI
+	// Web OAuth flow (with state): use configured redirect URI
+	if req.State == "" {
+		// Mobile SDK flow: Create config with empty redirect URI
+		mobileConfig := &oauth2.Config{
+			ClientID:     h.googleConfig.ClientID,
+			ClientSecret: h.googleConfig.ClientSecret,
+			RedirectURL:  "", // Empty for mobile SDK
+			Scopes:       h.googleConfig.Scopes,
+			Endpoint:     h.googleConfig.Endpoint,
+		}
+		token, err = mobileConfig.Exchange(ctx, req.Code)
+	} else {
+		// Web OAuth flow: use configured redirect URI
+		token, err = h.googleConfig.Exchange(ctx, req.Code)
+	}
+	
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to exchange token")
+		utils.ErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("Failed to exchange token: %v", err))
 		return
 	}
 

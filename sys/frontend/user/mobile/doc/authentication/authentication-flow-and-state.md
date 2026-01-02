@@ -6,6 +6,8 @@ This document describes the complete authentication flow for Google and LINE log
 
 ## Authentication Flow
 
+Both Google and LINE authentication now use the same pattern: get an authorization code from the OAuth provider, send it to the backend, and receive a JWT token.
+
 ### Google Authentication Flow
 
 ```
@@ -21,41 +23,45 @@ authService.signInWithGoogle()
     ↓
 3. User selects Google account and authorizes
     ↓
-4. Receive userInfo from Google
+4. Receive userInfo and serverAuthCode from Google
     ↓
-5. Create AuthResponse object:
-   - token: mock_token_{timestamp}
+5. Send serverAuthCode to backend:
+   POST {API_BASE_URL}/auth/google/callback
+   Body: { code: serverAuthCode }
+    ↓
+6. Backend validates code with Google and returns:
+   - token: JWT token
    - user:
-     * id: userInfo.data.user.id
-     * email: userInfo.data.user.email
-     * name: userInfo.data.user.name
-     * avatar: userInfo.data.user.photo (Google profile photo URL)
+     * id: User ID from database
+     * email: Google email
+     * name: Google display name
+     * avatar: Google profile photo URL
      * provider: 'google'
      * role: 'user'
      * status: 'active'
      * email_verified: true
     ↓
-6. Store in AsyncStorage:
+7. Store in AsyncStorage:
    - 'auth_token': authResponse.token
    - 'user': JSON.stringify(authResponse.user)
     ↓
-7. Return authResponse to LoginScreen
+8. Return authResponse to LoginScreen
     ↓
-8. Show success Alert popup
+9. Show success Alert popup
     ↓
-9. User clicks OK
+10. User clicks OK
     ↓
-10. Call refreshUser() from AuthContext
+11. Call refreshUser() from AuthContext
     ↓
-11. AuthContext updates state:
+12. AuthContext updates state:
     - user: authResponse.user
     - isLoggedIn: true
     ↓
-12. RootNavigator detects isLoggedIn = true
+13. RootNavigator detects isLoggedIn = true
     ↓
-13. Automatically switches from Login stack to Main stack
+14. Automatically switches from Login stack to Main stack
     ↓
-14. User sees HomeScreen with profile icon
+15. User sees HomeScreen with profile icon
 ```
 
 ### LINE Authentication Flow
@@ -420,6 +426,54 @@ authService.logout()
 3. **Token Validation**: Backend validates all OAuth codes and tokens
 4. **Secure WebView**: LINE login uses WebView with HTTPS only
 5. **State Cleanup**: OAuth state cleaned up after login/error
+6. **Server-side validation**: Both Google and LINE auth codes are validated by the backend with OAuth providers
+7. **Real JWT tokens**: Both authentication methods now receive proper JWT tokens from the backend
+
+## Key Changes (January 2026)
+
+### Google Authentication Backend Integration
+
+**Previous Implementation (Mock Token):**
+- Google Sign-In SDK returned user info directly
+- Frontend created a fake token: `mock_token_${Date.now()}`
+- Token was NOT validated by backend
+- Chat registration failed with authentication errors
+
+**Current Implementation (Real JWT):**
+- Google Sign-In SDK returns `serverAuthCode`
+- Frontend sends code to backend: `POST /auth/google/callback`
+- Backend validates code with Google OAuth
+- Backend creates/updates user in database
+- Backend generates real JWT token
+- Frontend receives and stores valid JWT token
+- Chat registration and all protected endpoints now work
+
+**Code Implementation:**
+```typescript
+// Get server auth code from Google Sign-In
+const userInfo = await GoogleSignin.signIn();
+const serverAuthCode = userInfo.serverAuthCode;
+
+// Send to backend for validation
+const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ code: serverAuthCode }),
+});
+
+const callbackData = await response.json();
+const authResponse: AuthResponse = callbackData.data;
+
+// Store real JWT token
+await AsyncStorage.setItem('auth_token', authResponse.token);
+await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
+```
+
+This change aligns Google authentication with LINE authentication, ensuring both methods:
+- Use backend validation
+- Generate real JWT tokens
+- Work with all protected API endpoints
+- Support chat registration and other authenticated features
 
 ## Testing
 
