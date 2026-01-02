@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import HomeScreen from '../screens/HomeScreen';
+import TimelineScreen from '../screens/TimelineScreen';
 import SearchScreen from '../screens/SearchScreen';
 import ShareScreen from '../screens/ShareScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
@@ -32,6 +33,15 @@ const BottomTabNavigator = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="home" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Timeline"
+        component={TimelineScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="view-timeline" size={size} color={color} />
           ),
         }}
       />
