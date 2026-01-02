@@ -46,6 +46,9 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		return
 	}
 
+	// Auto-detect chat type from URL
+	chatType := utils.DetectChatTypeFromURL(req.PublicLink)
+
 	chat := database.Chat{
 		ID:          uuid.New(),
 		UserID:      userID.(uuid.UUID),
@@ -53,6 +56,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		Title:       req.Title,
 		Description: req.Description,
 		PublicLink:  req.PublicLink,
+		ChatType:    chatType,
 		IsPublic:    req.IsPublic,
 		IsLinkValid: true,
 		Status:      "active",

@@ -71,6 +71,7 @@ const TimelineScreen = ({ navigation }: Props) => {
           description: 'Goの特徴、ポインターレシーバーなど',
           public_link: 'https://chat.openai.com/share/example1',
           user_id: 'user1',
+          chat_type: 'chatgpt',
           is_public: true,
           is_link_valid: true,
           status: 'active',
@@ -95,8 +96,9 @@ const TimelineScreen = ({ navigation }: Props) => {
           id: '2',
           title: 'React Nativeでの認証フロー実装',
           description: 'React Nativeでの認証フロー実装について詳しく解説',
-          public_link: 'https://chat.openai.com/share/example2',
+          public_link: 'https://claude.ai/share/example2',
           user_id: 'user1',
+          chat_type: 'claude',
           is_public: true,
           is_link_valid: true,
           status: 'active',
@@ -121,8 +123,9 @@ const TimelineScreen = ({ navigation }: Props) => {
           id: '3',
           title: 'TypeScriptのジェネリクスについて',
           description: 'TypeScriptのジェネリクスについて',
-          public_link: 'https://chat.openai.com/share/example3',
+          public_link: 'https://copilot.microsoft.com/share/example3',
           user_id: 'user1',
+          chat_type: 'copilot',
           is_public: true,
           is_link_valid: true,
           status: 'active',
@@ -149,6 +152,7 @@ const TimelineScreen = ({ navigation }: Props) => {
           description: 'モバイルUIのベストプラクティス',
           public_link: 'https://chat.openai.com/share/example4',
           user_id: 'user2',
+          chat_type: 'chatgpt',
           is_public: true,
           is_link_valid: true,
           status: 'active',
@@ -172,8 +176,9 @@ const TimelineScreen = ({ navigation }: Props) => {
           id: '5',
           title: 'Docker Composeでの環境構築手順',
           description: 'Docker Composeでの環境構築手順',
-          public_link: 'https://chat.openai.com/share/example5',
+          public_link: 'https://claude.ai/share/example5',
           user_id: 'user1',
+          chat_type: 'claude',
           is_public: true,
           is_link_valid: true,
           status: 'active',
@@ -228,11 +233,20 @@ const TimelineScreen = ({ navigation }: Props) => {
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   };
 
-  const getProviderTag = (chat: Chat): string => {
-    const provider = chat.user?.provider || chat.provider;
-    if (provider === 'google') return 'Google';
-    if (provider === 'line') return 'LINE';
-    return 'ChatGPT';
+  const getChatTypeTag = (chat: Chat): string => {
+    const chatType = chat.chat_type;
+    if (chatType === 'claude') return 'Claude';
+    if (chatType === 'copilot') return 'Copilot';
+    if (chatType === 'chatgpt') return 'ChatGPT';
+    return 'ChatGPT'; // default
+  };
+
+  const getChatTypeColor = (chat: Chat): string => {
+    const chatType = chat.chat_type;
+    if (chatType === 'claude') return '#CC9B7A';
+    if (chatType === 'copilot') return '#8E75E8';
+    if (chatType === 'chatgpt') return '#10A37F';
+    return '#10A37F'; // default to ChatGPT green
   };
 
   const renderChatItem = (item: Chat) => (
@@ -242,8 +256,8 @@ const TimelineScreen = ({ navigation }: Props) => {
       onPress={() => handleChatPress(item)}>
       <View style={styles.chatHeader}>
         <View style={styles.tagContainer}>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>{getProviderTag(item)}</Text>
+          <View style={[styles.tag, { backgroundColor: getChatTypeColor(item) }]}>
+            <Text style={styles.tagText}>{getChatTypeTag(item)}</Text>
           </View>
           {(item.category?.name || item.category_name) && (
             <View style={styles.category}>
@@ -387,7 +401,7 @@ const TimelineScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5DC',
+    backgroundColor: '#A8B896',
   },
   header: {
     flexDirection: 'row',
@@ -447,7 +461,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   chatItem: {
-    backgroundColor: '#A8B896',
+    backgroundColor: '#F5F5DC',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -463,7 +477,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    backgroundColor: '#F4D03F',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 6,
@@ -471,7 +484,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#333',
+    color: '#FFFFFF',
   },
   category: {
     backgroundColor: '#FFF',

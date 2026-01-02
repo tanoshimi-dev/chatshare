@@ -4,6 +4,31 @@ import EmulatorDetector from '../constants/EmulatorDetector';
 
 const API_BASE_URL = EmulatorDetector.getAPIUrl() || Config.API_BASE_URL || 'http://localhost:8080/api/v1';
 
+/**
+ * Automatically detect chat type from URL
+ */
+export const detectChatTypeFromUrl = (url: string): string => {
+  const lowerUrl = url.toLowerCase();
+
+  // Check for Claude AI
+  if (lowerUrl.includes('claude.ai')) {
+    return 'claude';
+  }
+
+  // Check for Microsoft Copilot
+  if (lowerUrl.includes('copilot.microsoft.com') || lowerUrl.includes('bing.com/chat')) {
+    return 'copilot';
+  }
+
+  // Check for ChatGPT (default)
+  if (lowerUrl.includes('chat.openai.com') || lowerUrl.includes('chatgpt.com')) {
+    return 'chatgpt';
+  }
+
+  // Default to ChatGPT if no match
+  return 'chatgpt';
+};
+
 export interface Chat {
   id: string;
   title: string;
@@ -11,6 +36,7 @@ export interface Chat {
   public_link: string;
   category_id?: string;
   user_id: string;
+  chat_type?: string; // chatgpt, claude, copilot
   is_public: boolean;
   is_link_valid: boolean;
   status: string;

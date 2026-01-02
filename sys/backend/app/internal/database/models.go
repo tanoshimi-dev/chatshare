@@ -59,6 +59,7 @@ type Chat struct {
 	Title           string         `gorm:"size:255;not null" json:"title"`
 	Description     string         `gorm:"size:1000" json:"description"`
 	PublicLink      string         `gorm:"size:512;uniqueIndex;not null" json:"public_link"`
+	ChatType        string         `gorm:"size:50;default:'chatgpt'" json:"chat_type"` // chatgpt, claude, copilot
 	IsLinkValid     bool           `gorm:"default:true" json:"is_link_valid"`
 	IsPublic        bool           `gorm:"default:true" json:"is_public"`
 	IsFeatured      bool           `gorm:"default:false" json:"is_featured"`
