@@ -32,6 +32,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		CategoryID  uuid.UUID `json:"category_id"`
 		Keywords    []string  `json:"keywords"`
 		IsPublic    bool      `json:"is_public"`
+		ChatType    string    `json:"chat_type"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -46,6 +47,12 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		return
 	}
 
+	// Auto-detect chat type from URL if not provided
+	chatType := req.ChatType
+	if chatType == "" {
+		chatType = utils.DetectChatTypeFromURL(req.PublicLink)
+	}
+
 	chat := database.Chat{
 		ID:          uuid.New(),
 		UserID:      userID.(uuid.UUID),
@@ -53,6 +60,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		Title:       req.Title,
 		Description: req.Description,
 		PublicLink:  req.PublicLink,
+		ChatType:    chatType,
 		IsPublic:    req.IsPublic,
 		IsLinkValid: true,
 		Status:      "active",

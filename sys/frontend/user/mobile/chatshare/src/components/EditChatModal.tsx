@@ -30,7 +30,6 @@ const EditChatModal: React.FC<EditChatModalProps> = ({
   onDelete,
 }) => {
   const [title, setTitle] = useState('');
-  const [publicLink, setPublicLink] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,7 +39,6 @@ const EditChatModal: React.FC<EditChatModalProps> = ({
   useEffect(() => {
     if (visible && chat) {
       setTitle(chat.title || '');
-      setPublicLink(chat.public_link || chat.url || '');
       setDescription(chat.description || '');
       setSelectedCategoryId(chat.category_id || '');
       loadCategories();
@@ -68,17 +66,11 @@ const EditChatModal: React.FC<EditChatModalProps> = ({
       return;
     }
 
-    if (!publicLink.trim()) {
-      Alert.alert('Error', 'Public link is required');
-      return;
-    }
-
     try {
       setLoading(true);
       const updates = {
         title: title.trim(),
         description: description.trim(),
-        public_link: publicLink.trim(),
         category_id: selectedCategoryId || undefined,
         is_public: chat.is_public, // Preserve the original is_public value
       };
@@ -154,19 +146,6 @@ const EditChatModal: React.FC<EditChatModalProps> = ({
                 onChangeText={setTitle}
                 placeholder="Enter chat title"
                 placeholderTextColor="#999"
-                editable={!loading}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Public Link *</Text>
-              <TextInput
-                style={styles.input}
-                value={publicLink}
-                onChangeText={setPublicLink}
-                placeholder="Enter public link"
-                placeholderTextColor="#999"
-                autoCapitalize="none"
                 editable={!loading}
               />
             </View>

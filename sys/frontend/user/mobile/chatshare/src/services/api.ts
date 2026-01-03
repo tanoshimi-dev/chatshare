@@ -7,6 +7,7 @@
 import Config from 'react-native-config';
 import EmulatorDetector from '../constants/EmulatorDetector';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { detectChatTypeFromUrl } from './chatService';
 
 export interface Category {
   id: string;
@@ -47,6 +48,7 @@ export interface RegisterChatRequest {
   category_id: string;
   title: string;
   description?: string;
+  chat_type?: string;
 }
 
 const API_BASE_URL = EmulatorDetector.getAPIUrl() || Config.API_BASE_URL || 'http://localhost:8080/api/v1';
@@ -80,10 +82,15 @@ export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => 
     // Get auth token from AsyncStorage
     const token = await AsyncStorage.getItem('auth_token');
     
+    // Auto-detect chat type from URL if not provided
+    const chatType = data.chat_type || detectChatTypeFromUrl(data.public_link);
+    const requestData = { ...data, chat_type: chatType };
+    
     console.log('RegisterChat - Token exists:', !!token);
     console.log('RegisterChat - Token preview:', token ? token.substring(0, 20) + '...' : 'null');
     console.log('RegisterChat - API URL:', `${API_BASE_URL}/chats`);
-    console.log('RegisterChat - Request data:', JSON.stringify(data, null, 2));
+    console.log('RegisterChat - Detected chat type:', chatType);
+    console.log('RegisterChat - Request data:', JSON.stringify(requestData, null, 2));
     
     if (!token) {
       throw new Error('No authentication token found. Please log in again.');
@@ -95,7 +102,7 @@ export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(requestData),
     });
     
     console.log('RegisterChat - Response status:', response.status);
