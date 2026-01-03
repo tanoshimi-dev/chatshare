@@ -181,11 +181,7 @@ const FavoriteScreen = ({ navigation }: Props) => {
               <Icon name="edit" size={20} color="#666" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            onPress={() => handleRemoveFavorite(item)}
-            style={styles.removeButton}>
-            <Icon name="favorite" size={20} color="#E74C3C" />
-          </TouchableOpacity>
+          <Icon name="launch" size={16} color="#666" />
         </View>
       </View>
 
@@ -213,12 +209,14 @@ const FavoriteScreen = ({ navigation }: Props) => {
           </View>
         </View>
 
-        <View style={styles.likeContainer}>
-          <Icon name="favorite-border" size={18} color="#666" />
+        <TouchableOpacity
+          style={styles.likeContainer}
+          onPress={() => handleRemoveFavorite(item)}>
+          <Icon name="favorite" size={20} color="#E74C3C" />
           <Text style={styles.likeCount}>
             {item.good_count || item.likes_count || 0}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -405,6 +403,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    padding: 4,
   },
   likeCount: {
     fontSize: 14,

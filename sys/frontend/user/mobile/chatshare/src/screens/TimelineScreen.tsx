@@ -261,7 +261,7 @@ const TimelineScreen = ({ navigation }: Props) => {
     try {
       const isFavorited = chat.is_favorited;
       
-      // Optimistic update
+      // Optimistic update - only toggle is_favorited, not good_count
       setChats(prevChats =>
         prevChats.map(c =>
           c.id === chat.id ? { ...c, is_favorited: !isFavorited } : c
@@ -273,6 +273,9 @@ const TimelineScreen = ({ navigation }: Props) => {
       } else {
         await addFavorite(chat.id);
       }
+      
+      // Reload chats to get updated good_count from backend
+      loadChats();
     } catch (error: any) {
       // Revert on error
       setChats(prevChats =>
@@ -381,20 +384,17 @@ const TimelineScreen = ({ navigation }: Props) => {
 
         <View style={styles.actionsContainer}>
           <TouchableOpacity
-            style={styles.favoriteButton}
+            style={styles.likeContainer}
             onPress={() => handleFavoriteToggle(item)}>
             <Icon
               name={item.is_favorited ? 'favorite' : 'favorite-border'}
               size={20}
               color={item.is_favorited ? '#E74C3C' : '#666'}
             />
-          </TouchableOpacity>
-          <View style={styles.likeContainer}>
-            <Icon name="favorite-border" size={18} color="#666" />
             <Text style={styles.likeCount}>
               {item.good_count || item.likes_count || 0}
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
@@ -651,15 +651,12 @@ const styles = StyleSheet.create({
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  favoriteButton: {
-    padding: 4,
   },
   likeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    padding: 4,
   },
   likeCount: {
     fontSize: 14,
