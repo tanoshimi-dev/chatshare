@@ -68,7 +68,6 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 			public.GET("/rankings/shares", searchHandler.GetRankingByShares)
 			public.GET("/rankings/comments", searchHandler.GetRankingByComments)
 			public.GET("/rankings/views", searchHandler.GetRankingByViews)
-			public.GET("/rankings/goods", searchHandler.GetRankingByGoods)
 			public.GET("/keywords/popular", searchHandler.GetPopularKeywords)
 
 			// Users (public profiles)
@@ -102,10 +101,6 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 				// Favorites
 				chats.POST("/:id/favorite", chatHandler.AddFavorite)
 				chats.DELETE("/:id/favorite", chatHandler.RemoveFavorite)
-
-				// Good (Like)
-				chats.POST("/:id/good", chatHandler.AddGood)
-				chats.DELETE("/:id/good", chatHandler.RemoveGood)
 
 				// Share tracking
 				chats.POST("/:id/share", chatHandler.RecordShare)

@@ -30,7 +30,6 @@ type User struct {
 	Comments        []Comment      `gorm:"foreignKey:UserID" json:"comments,omitempty"`
 	Views           []View         `gorm:"foreignKey:UserID" json:"views,omitempty"`
 	Shares          []Share        `gorm:"foreignKey:UserID" json:"shares,omitempty"`
-	Goods           []Good         `gorm:"foreignKey:UserID" json:"goods,omitempty"`
 }
 
 // Category represents a chat category
@@ -68,7 +67,6 @@ type Chat struct {
 	ShareCount      int            `gorm:"default:0" json:"share_count"`
 	FavoriteCount   int            `gorm:"default:0" json:"favorite_count"`
 	CommentCount    int            `gorm:"default:0" json:"comment_count"`
-	GoodCount       int            `gorm:"default:0" json:"good_count"`
 	LastViewedAt    *time.Time     `json:"last_viewed_at"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
@@ -85,7 +83,6 @@ type Chat struct {
 	Comments        []Comment      `gorm:"foreignKey:ChatID" json:"comments,omitempty"`
 	Views           []View         `gorm:"foreignKey:ChatID" json:"views,omitempty"`
 	Shares          []Share        `gorm:"foreignKey:ChatID" json:"shares,omitempty"`
-	Goods           []Good         `gorm:"foreignKey:ChatID" json:"goods,omitempty"`
 }
 
 // Keyword represents a keyword/tag
@@ -173,18 +170,6 @@ type Share struct {
 	ChatID    uuid.UUID `gorm:"type:uuid;not null;index" json:"chat_id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
 	Platform  string    `gorm:"size:50" json:"platform"` // twitter, facebook, line, etc.
-	CreatedAt time.Time `json:"created_at"`
-
-	// Relationships
-	Chat      Chat      `gorm:"foreignKey:ChatID" json:"chat,omitempty"`
-	User      User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
-}
-
-// Good represents a user marking a chat as good
-type Good struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	ChatID    uuid.UUID `gorm:"type:uuid;not null;index" json:"chat_id"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
 
 	// Relationships

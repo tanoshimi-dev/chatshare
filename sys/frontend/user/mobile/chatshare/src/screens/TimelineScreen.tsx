@@ -78,7 +78,7 @@ const TimelineScreen = ({ navigation }: Props) => {
           is_public: true,
           is_link_valid: true,
           status: 'active',
-          good_count: 122,
+          favorite_count: 122,
           view_count: 450,
           share_count: 10,
           created_at: '2026-01-01T11:11:00Z',
@@ -105,7 +105,7 @@ const TimelineScreen = ({ navigation }: Props) => {
           is_public: true,
           is_link_valid: true,
           status: 'active',
-          good_count: 98,
+          favorite_count: 98,
           view_count: 320,
           share_count: 5,
           created_at: '2026-01-01T10:30:00Z',
@@ -132,7 +132,7 @@ const TimelineScreen = ({ navigation }: Props) => {
           is_public: true,
           is_link_valid: true,
           status: 'active',
-          good_count: 156,
+          favorite_count: 156,
           view_count: 580,
           share_count: 8,
           created_at: '2026-01-01T09:15:00Z',
@@ -159,7 +159,7 @@ const TimelineScreen = ({ navigation }: Props) => {
           is_public: true,
           is_link_valid: true,
           status: 'active',
-          good_count: 203,
+          favorite_count: 203,
           view_count: 750,
           share_count: 12,
           created_at: '2026-01-01T08:45:00Z',
@@ -185,7 +185,7 @@ const TimelineScreen = ({ navigation }: Props) => {
           is_public: true,
           is_link_valid: true,
           status: 'active',
-          good_count: 87,
+          favorite_count: 87,
           view_count: 290,
           share_count: 4,
           created_at: '2025-12-31T22:30:00Z',
@@ -392,7 +392,7 @@ const TimelineScreen = ({ navigation }: Props) => {
               color={item.is_favorited ? '#E74C3C' : '#666'}
             />
             <Text style={styles.likeCount}>
-              {item.good_count || item.likes_count || 0}
+              {item.favorite_count || 0}
             </Text>
           </TouchableOpacity>
         </View>

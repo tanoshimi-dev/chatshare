@@ -22,6 +22,19 @@ func NewChatHandler(db *gorm.DB, cfg *config.Config) *ChatHandler {
 	return &ChatHandler{db: db, cfg: cfg}
 }
 
+// syncChatCounts updates the favorite_count for a chat based on actual records
+func (h *ChatHandler) syncChatCounts(chat *database.Chat) {
+	var favoriteCount int64
+	h.db.Model(&database.Favorite{}).Where("chat_id = ?", chat.ID).Count(&favoriteCount)
+	
+	if chat.FavoriteCount != int(favoriteCount) {
+		h.db.Model(&database.Chat{}).Where("id = ?", chat.ID).Updates(map[string]interface{}{
+			"favorite_count": favoriteCount,
+		})
+		chat.FavoriteCount = int(favoriteCount)
+	}
+}
+
 func (h *ChatHandler) CreateChat(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
@@ -133,6 +146,9 @@ func (h *ChatHandler) GetChat(c *gin.Context) {
 	chat.LastViewedAt = &now
 	h.db.Save(&chat)
 
+	// Sync counts to ensure accuracy
+	h.syncChatCounts(&chat)
+
 	utils.SuccessResponse(c, http.StatusOK, chat)
 }
 
@@ -156,9 +172,11 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 	}
 
 	if keyword := c.Query("keyword"); keyword != "" {
-		query = query.Joins("JOIN chat_keywords ON chat_keywords.chat_id = chats.id").
-			Joins("JOIN keywords ON keywords.id = chat_keywords.keyword_id").
-			Where("keywords.name ILIKE ?", "%"+keyword+"%")
+		query = query.Where("id IN (?)", 
+			h.db.Table("chat_keywords").
+				Select("chat_keywords.chat_id").
+				Joins("JOIN keywords ON keywords.id = chat_keywords.keyword_id").
+				Where("keywords.name ILIKE ?", "%"+keyword+"%"))
 	}
 
 	if search := c.Query("search"); search != "" {
@@ -172,8 +190,10 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 			utils.ErrorResponse(c, http.StatusUnauthorized, "Authentication required")
 			return
 		}
-		query = query.Joins("JOIN favorites ON favorites.chat_id = chats.id").
-			Where("favorites.user_id = ?", userID)
+		query = query.Where("id IN (?)",
+			h.db.Table("favorites").
+				Select("chat_id").
+				Where("user_id = ?", userID))
 	}
 
 	// Count total
@@ -183,7 +203,7 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 	// Pagination
 	offset := (page - 1) * pageSize
 	var chats []database.Chat
-	if err := query.Preload("User").Preload("Category").Offset(offset).Limit(pageSize).
+	if err := query.Select("chats.*").Preload("User").Preload("Category").Offset(offset).Limit(pageSize).
 		Order("created_at DESC").Find(&chats).Error; err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch chats")
 		return
@@ -336,8 +356,12 @@ func (h *ChatHandler) AddFavorite(c *gin.Context) {
 		return
 	}
 
-	chat.FavoriteCount++
-	h.db.Save(&chat)
+	// Update favorite count by counting actual records
+	var count int64
+	h.db.Model(&database.Favorite{}).Where("chat_id = ?", chatID).Count(&count)
+	h.db.Model(&database.Chat{}).Where("id = ?", chatID).Updates(map[string]interface{}{
+		"favorite_count": count,
+	})
 
 	utils.MessageResponse(c, http.StatusCreated, "Chat favorited successfully")
 }
@@ -364,84 +388,15 @@ func (h *ChatHandler) RemoveFavorite(c *gin.Context) {
 
 	var chat database.Chat
 	if err := h.db.First(&chat, "id = ?", chatID).Error; err == nil {
-		if chat.FavoriteCount > 0 {
-			chat.FavoriteCount--
-			h.db.Save(&chat)
-		}
+		// Update favorite count by counting actual records
+		var count int64
+		h.db.Model(&database.Favorite{}).Where("chat_id = ?", chatID).Count(&count)
+		h.db.Model(&database.Chat{}).Where("id = ?", chatID).Updates(map[string]interface{}{
+			"favorite_count": count,
+		})
 	}
 
 	utils.MessageResponse(c, http.StatusOK, "Favorite removed successfully")
-}
-
-// Good (Like) operations
-func (h *ChatHandler) AddGood(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	chatIDStr := c.Param("id")
-	chatID, err := uuid.Parse(chatIDStr)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid chat ID")
-		return
-	}
-
-	var chat database.Chat
-	if err := h.db.First(&chat, "id = ?", chatID).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusNotFound, "Chat not found")
-		return
-	}
-
-	// Check if already marked good
-	var existing database.Good
-	if err := h.db.Where("user_id = ? AND chat_id = ?", userID, chatID).First(&existing).Error; err == nil {
-		utils.ErrorResponse(c, http.StatusConflict, "Already marked as good")
-		return
-	}
-
-	good := database.Good{
-		ID:     uuid.New(),
-		UserID: userID.(uuid.UUID),
-		ChatID: chatID,
-	}
-
-	if err := h.db.Create(&good).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to mark as good")
-		return
-	}
-
-	chat.GoodCount++
-	h.db.Save(&chat)
-
-	utils.MessageResponse(c, http.StatusCreated, "Marked as good successfully")
-}
-
-func (h *ChatHandler) RemoveGood(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	chatIDStr := c.Param("id")
-	chatID, err := uuid.Parse(chatIDStr)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid chat ID")
-		return
-	}
-
-	result := h.db.Where("user_id = ? AND chat_id = ?", userID, chatID).Delete(&database.Good{})
-	if result.Error != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to remove good")
-		return
-	}
-
-	if result.RowsAffected == 0 {
-		utils.ErrorResponse(c, http.StatusNotFound, "Good not found")
-		return
-	}
-
-	var chat database.Chat
-	if err := h.db.First(&chat, "id = ?", chatID).Error; err == nil {
-		if chat.GoodCount > 0 {
-			chat.GoodCount--
-			h.db.Save(&chat)
-		}
-	}
-
-	utils.MessageResponse(c, http.StatusOK, "Good removed successfully")
 }
 
 // Share tracking

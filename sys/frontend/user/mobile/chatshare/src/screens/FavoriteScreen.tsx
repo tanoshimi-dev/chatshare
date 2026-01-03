@@ -214,7 +214,7 @@ const FavoriteScreen = ({ navigation }: Props) => {
           onPress={() => handleRemoveFavorite(item)}>
           <Icon name="favorite" size={20} color="#E74C3C" />
           <Text style={styles.likeCount}>
-            {item.good_count || item.likes_count || 0}
+            {item.favorite_count || 0}
           </Text>
         </TouchableOpacity>
       </View>

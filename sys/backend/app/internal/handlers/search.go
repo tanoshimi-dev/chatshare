@@ -74,7 +74,7 @@ func (h *SearchHandler) GetRankingByFavorites(c *gin.Context) {
 	var chats []database.Chat
 	if err := h.db.Preload("User").Preload("Category").
 		Where("is_public = ? AND status = ?", true, "active").
-		Order("favorite_count DESC").
+		Order("favorite_count DESC, created_at DESC").
 		Limit(limit).
 		Find(&chats).Error; err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
@@ -132,25 +132,6 @@ func (h *SearchHandler) GetRankingByViews(c *gin.Context) {
 	if err := h.db.Preload("User").Preload("Category").
 		Where("is_public = ? AND status = ?", true, "active").
 		Order("view_count DESC").
-		Limit(limit).
-		Find(&chats).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, chats)
-}
-
-func (h *SearchHandler) GetRankingByGoods(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if limit > h.cfg.MaxPageSize {
-		limit = h.cfg.MaxPageSize
-	}
-
-	var chats []database.Chat
-	if err := h.db.Preload("User").Preload("Category").
-		Where("is_public = ? AND status = ?", true, "active").
-		Order("good_count DESC").
 		Limit(limit).
 		Find(&chats).Error; err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")

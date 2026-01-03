@@ -41,9 +41,10 @@ export interface Chat {
   is_link_valid: boolean;
   is_favorited?: boolean;
   status: string;
-  good_count?: number;
+  favorite_count?: number;
   view_count?: number;
   share_count?: number;
+  comment_count?: number;
   created_at: string;
   updated_at: string;
   // Populated fields from Preload
