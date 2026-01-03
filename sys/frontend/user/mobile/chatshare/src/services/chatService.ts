@@ -424,3 +424,85 @@ export const fetchFavoriteChats = async (
     throw error;
   }
 };
+
+/**
+ * Update a chat (title, description, category, public link)
+ */
+export const updateChat = async (
+  chatId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    category_id?: string;
+    public_link?: string;
+    is_public?: boolean;
+  }
+): Promise<Chat> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update chat');
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to update chat');
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error('Error updating chat:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a chat
+ */
+export const deleteChat = async (chatId: string): Promise<void> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete chat');
+    }
+
+    const data = await response.json();
+
+    if (!data.success && data.message) {
+      throw new Error(data.message);
+    }
+  } catch (error) {
+    console.error('Error deleting chat:', error);
+    throw error;
+  }
+};

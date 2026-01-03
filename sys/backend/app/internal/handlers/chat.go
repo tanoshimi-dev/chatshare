@@ -228,10 +228,11 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 	}
 
 	var req struct {
-		Title       string    `json:"title"`
-		Description string    `json:"description"`
-		CategoryID  uuid.UUID `json:"category_id"`
-		IsPublic    bool      `json:"is_public"`
+		Title       string     `json:"title"`
+		Description string     `json:"description"`
+		CategoryID  *uuid.UUID `json:"category_id"`
+		IsPublic    *bool      `json:"is_public"`
+		PublicLink  string     `json:"public_link"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -243,15 +244,24 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 		chat.Title = req.Title
 	}
 	chat.Description = req.Description
-	if req.CategoryID != uuid.Nil {
-		chat.CategoryID = req.CategoryID
+	if req.CategoryID != nil && *req.CategoryID != uuid.Nil {
+		chat.CategoryID = *req.CategoryID
 	}
-	chat.IsPublic = req.IsPublic
+	// Only update IsPublic if explicitly provided
+	if req.IsPublic != nil {
+		chat.IsPublic = *req.IsPublic
+	}
+	if req.PublicLink != "" {
+		chat.PublicLink = req.PublicLink
+	}
 
 	if err := h.db.Save(&chat).Error; err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update chat")
 		return
 	}
+
+	// Preload user and category for response
+	h.db.Preload("User").Preload("Category").First(&chat, "id = ?", chat.ID)
 
 	utils.SuccessResponse(c, http.StatusOK, chat)
 }

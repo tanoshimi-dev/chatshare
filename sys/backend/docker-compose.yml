@@ -20,19 +20,16 @@ services:
             timeout: 5s
             retries: 5
 
-    # PostgreSQL Admin (pgAdmin)
-    pgadmin:
-        image: dpage/pgadmin4:latest
-        container_name: chatshare_pgadmin
+    # PostgreSQL Admin (Adminer - lightweight and stable)
+    adminer:
+        image: adminer:latest
+        container_name: chatshare_adminer
         restart: unless-stopped
         environment:
-            PGADMIN_DEFAULT_EMAIL: admin@chatshare.com
-            PGADMIN_DEFAULT_PASSWORD: admin
-            PGADMIN_CONFIG_SERVER_MODE: "False"
-        volumes:
-            - pgadmin_data:/var/lib/pgadmin
+            ADMINER_DEFAULT_SERVER: postgres
+            ADMINER_DESIGN: nette
         ports:
-            - "5050:80"
+            - "5050:8080"
         networks:
             - chatshare_network
         depends_on:
@@ -178,8 +175,6 @@ networks:
 
 volumes:
     postgres_data:
-        driver: local
-    pgadmin_data:
         driver: local
     redis_data:
         driver: local

@@ -19,6 +19,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchPublicChats, Chat, addFavorite, removeFavorite } from '../services/chatService';
+import EditChatModal from '../components/EditChatModal';
 
 type DrawerParamList = {
   Timeline: undefined;
@@ -45,6 +46,8 @@ const TimelineScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
   useEffect(() => {
     loadChats();
@@ -281,6 +284,42 @@ const TimelineScreen = ({ navigation }: Props) => {
     }
   };
 
+  const isOwnChat = (chat: Chat): boolean => {
+    return user?.id === chat.user_id || user?.id === chat.user?.id;
+  };
+
+  const handleEditChat = (chat: Chat) => {
+    setSelectedChat(chat);
+    setEditModalVisible(true);
+  };
+
+  const handleChatUpdate = (updatedChat: Chat) => {
+    setChats(prevChats =>
+      prevChats.map(chat => {
+        if (chat.id === updatedChat.id) {
+          // Merge updated chat with original, preserving critical fields
+          return {
+            ...chat,
+            ...updatedChat,
+            // Preserve these fields from original if not in update
+            is_public: updatedChat.is_public !== undefined ? updatedChat.is_public : chat.is_public,
+            is_favorited: updatedChat.is_favorited !== undefined ? updatedChat.is_favorited : chat.is_favorited,
+            user: updatedChat.user || chat.user,
+            category: updatedChat.category || chat.category,
+            user_name: updatedChat.user?.name || chat.user?.name || chat.user_name,
+            user_avatar: updatedChat.user?.avatar || chat.user?.avatar || chat.user_avatar,
+            category_name: updatedChat.category?.name || chat.category?.name || chat.category_name,
+          };
+        }
+        return chat;
+      })
+    );
+  };
+
+  const handleChatDelete = (chatId: string) => {
+    setChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
+  };
+
   const renderChatItem = (item: Chat) => (
     <TouchableOpacity
       key={item.id}
@@ -304,7 +343,16 @@ const TimelineScreen = ({ navigation }: Props) => {
             </View>
           )}
         </View>
-        <Icon name="launch" size={16} color="#666" />
+        <View style={styles.chatHeaderActions}>
+          {isOwnChat(item) && (
+            <TouchableOpacity
+              onPress={() => handleEditChat(item)}
+              style={styles.editButton}>
+              <Icon name="edit" size={18} color="#666" />
+            </TouchableOpacity>
+          )}
+          <Icon name="launch" size={16} color="#666" />
+        </View>
       </View>
 
       <Text style={styles.chatContent} numberOfLines={2}>
@@ -437,6 +485,17 @@ const TimelineScreen = ({ navigation }: Props) => {
           )}
         </ScrollView>
       )}
+
+      <EditChatModal
+        visible={editModalVisible}
+        chat={selectedChat}
+        onClose={() => {
+          setEditModalVisible(false);
+          setSelectedChat(null);
+        }}
+        onUpdate={handleChatUpdate}
+        onDelete={handleChatDelete}
+      />
     </View>
   );
 };
@@ -514,6 +573,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  chatHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editButton: {
+    padding: 4,
   },
   tagContainer: {
     flexDirection: 'row',
