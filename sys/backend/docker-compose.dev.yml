@@ -2,7 +2,7 @@ services:
     # PostgreSQL Database
     postgres:
         image: postgres:15-alpine
-        container_name: chatshare_postgres
+        container_name: chatshare_postgres_dev
         restart: unless-stopped
         environment:
             POSTGRES_USER: chatshare
@@ -23,7 +23,7 @@ services:
     # PostgreSQL Admin (Adminer - lightweight and stable)
     adminer:
         image: adminer:latest
-        container_name: chatshare_adminer
+        container_name: chatshare_adminer_dev
         restart: unless-stopped
         environment:
             ADMINER_DEFAULT_SERVER: postgres
@@ -38,7 +38,7 @@ services:
     # Redis Cache
     redis:
         image: redis:7-alpine
-        container_name: chatshare_redis
+        container_name: chatshare_redis_dev
         restart: unless-stopped
         command: redis-server --appendonly yes
         volumes:
@@ -72,12 +72,12 @@ services:
         build:
             context: ./app
             dockerfile: Dockerfile
-        container_name: chatshare_backend
+        container_name: chatshare_backend_dev
         restart: unless-stopped
         environment:
             - PORT=8080
-            - GIN_MODE=release
-            - ENVIRONMENT=production
+            - GIN_MODE=debug
+            - ENVIRONMENT=development
             - DB_HOST=postgres
             - DB_PORT=5432
             - DB_USER=chatshare
@@ -161,7 +161,7 @@ services:
     # Mailhog (Email testing in development)
     mailhog:
         image: mailhog/mailhog:latest
-        container_name: chatshare_mailhog
+        container_name: chatshare_mailhog_dev
         restart: unless-stopped
         ports:
             - "1025:1025" # SMTP server
