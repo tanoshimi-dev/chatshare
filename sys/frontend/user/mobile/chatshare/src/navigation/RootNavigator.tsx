@@ -54,6 +54,14 @@ const RootNavigator = () => {
           <Stack.Screen name="Main" component={DrawerNavigator} />
           <Stack.Screen name="Detail" component={DetailScreen} />
           <Stack.Screen name="ShareDetail" component={ShareDetailScreen} />
+          <Stack.Screen 
+            name="LineLoginWebView" 
+            component={LineLoginWebView}
+            options={{
+              presentation: 'modal',
+              headerShown: false,
+            }}
+          />
         </>
       )}
     </Stack.Navigator>

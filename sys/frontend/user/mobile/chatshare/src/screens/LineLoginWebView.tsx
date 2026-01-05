@@ -45,14 +45,22 @@ console.log("LineLoginWebView loaded with currentUrl:", currentUrl);
         if (error) {
           // Store error for LoginScreen to handle
           await AsyncStorage.setItem("line_login_error", error);
-          navigation.goBack();
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('Login');
+          }
           return;
         }
 
         if (code) {
           // Store code for LoginScreen to handle
           await AsyncStorage.setItem("line_auth_code", code);
-          navigation.goBack();
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('Login');
+          }
           return;
         }
       } catch (e) {
@@ -61,14 +69,22 @@ console.log("LineLoginWebView loaded with currentUrl:", currentUrl);
           "line_login_error",
           "Failed to parse callback URL"
         );
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Login');
+        }
       }
     }
   };
 
   const handleCancel = async () => {
     await AsyncStorage.setItem("line_login_error", "User cancelled");
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Login');
+    }
   };
 
   return (

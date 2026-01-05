@@ -369,6 +369,11 @@ export const logout = async (): Promise<void> => {
     await AsyncStorage.removeItem('auth_token');
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('oauth_state');
+    
+    // Clear LINE-specific items
+    await AsyncStorage.removeItem('line_auth_code');
+    await AsyncStorage.removeItem('line_login_error');
+    await AsyncStorage.removeItem('line_oauth_state');
 
     // TODO: Uncomment when backend is ready
     // Optionally call backend logout endpoint
@@ -389,6 +394,9 @@ export const logout = async (): Promise<void> => {
     await AsyncStorage.removeItem('auth_token');
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('oauth_state');
+    await AsyncStorage.removeItem('line_auth_code');
+    await AsyncStorage.removeItem('line_login_error');
+    await AsyncStorage.removeItem('line_oauth_state');
   }
 };
 
