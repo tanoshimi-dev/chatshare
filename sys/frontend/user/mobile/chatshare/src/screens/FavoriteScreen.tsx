@@ -16,6 +16,7 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchFavoriteChats, Chat, removeFavorite } from '../services/chatService';
 import EditChatModal from '../components/EditChatModal';
@@ -40,7 +41,7 @@ type Props = {
 };
 
 const FavoriteScreen = ({ navigation }: Props) => {
-  const { isLoggedIn, user } = useAuth();
+  const { isAuthenticatedUser, user } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,12 +49,12 @@ const FavoriteScreen = ({ navigation }: Props) => {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isAuthenticatedUser) {
       loadFavorites();
     } else {
       setLoading(false);
     }
-  }, [isLoggedIn]);
+  }, [isAuthenticatedUser]);
 
   const loadFavorites = async () => {
     try {
@@ -224,18 +225,49 @@ const FavoriteScreen = ({ navigation }: Props) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5DC" />
+      
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.menuButton}
           onPress={() => navigation.openDrawer()}>
           <Icon name="menu" size={28} color="#333" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Icon name="notifications-none" size={28} color="#333" />
-        </TouchableOpacity>
+
+        {/* Profile Avatar or Notification Icon */}
+        {isAuthenticatedUser ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={styles.profileButton}
+              onPress={() => navigation.navigate('Account')}>
+              {user?.avatar && user.avatar !== '' ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.profileAvatar}
+                />
+              ) : (
+                <View style={styles.profileAvatarPlaceholder}>
+                  {user?.provider === 'google' ? (
+                    <View style={styles.googleIconContainer}>
+                      <FontAwesome name="google" size={24} color="#4285F4" />
+                    </View>
+                  ) : user?.provider === 'line' ? (
+                    <View style={styles.lineIconContainer}>
+                      <FontAwesome name="comment" size={24} color="#00B900" />
+                    </View>
+                  ) : (
+                    <Icon name="account-circle" size={36} color="#A8B896" />
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <></>
+        )}
       </View>
 
-      {!isLoggedIn ? (
+      {!isAuthenticatedUser ? (
         <View style={styles.emptyContainer}>
           <Icon name="favorite-border" size={64} color="#999" />
           <Text style={styles.emptyText}>Please login to view favorites</Text>
@@ -305,6 +337,42 @@ const styles = StyleSheet.create({
   },
   notificationButton: {
     padding: 8,
+  },
+  profileButton: {
+    padding: 4,
+  },
+  profileAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#A8B896',
+  },
+  profileAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4285F4',
+  },
+  lineIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#00B900',
   },
   scrollContent: {
     flex: 1,

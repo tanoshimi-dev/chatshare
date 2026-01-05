@@ -53,6 +53,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
         {...props}
         contentContainerStyle={styles.drawerContent}>
         {/* Drawer Menu Items */}
+        {/* 
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={() => {
@@ -81,9 +82,11 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
           }}>
           <Icon name="settings" size={24} color="#333" style={styles.menuIcon} />
           <Text style={styles.menuItemText}>Settings</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> 
 
         <View style={styles.separator} />
+        */}
+
 
         <TouchableOpacity 
           style={styles.menuItem}
@@ -109,12 +112,14 @@ const styles = StyleSheet.create({
   closeButton: {
     paddingTop: 10,
     width: 40,
-    height: 40,
+    // height: 40,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
   drawerContent: {
-    paddingTop: 20,
+    // paddingTop: 20,
+    paddingTop: 0,
   },
   menuItem: {
     paddingVertical: 16,

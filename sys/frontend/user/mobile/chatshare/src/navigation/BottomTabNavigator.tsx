@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import HomeScreen from '../screens/HomeScreen';
 import TimelineScreen from '../screens/TimelineScreen';
@@ -7,10 +8,13 @@ import SearchScreen from '../screens/SearchScreen';
 import ShareScreen from '../screens/ShareScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
 import FavoriteScreen from '../screens/FavoriteScreen';
+import { useAuth } from '../contexts/AuthContext';
 
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
+  const { isAuthenticatedUser } = useAuth();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -27,7 +31,7 @@ const BottomTabNavigator = () => {
           fontSize: 12,
         },
       }}>
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
@@ -35,7 +39,7 @@ const BottomTabNavigator = () => {
             <Icon name="home" size={size} color={color} />
           ),
         }}
-      />
+      /> */}
       <Tab.Screen
         name="Timeline"
         component={TimelineScreen}
@@ -45,7 +49,7 @@ const BottomTabNavigator = () => {
           ),
         }}
       />
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Search"
         component={SearchScreen}
         options={{
@@ -53,8 +57,8 @@ const BottomTabNavigator = () => {
             <Icon name="search" size={size} color={color} />
           ),
         }}
-      />
-      <Tab.Screen
+      /> */}
+      {/* <Tab.Screen
         name="Share"
         component={ShareScreen}
         options={{
@@ -62,7 +66,7 @@ const BottomTabNavigator = () => {
             <Icon name="share" size={size} color={color} />
           ),
         }}
-      />
+      /> */}
       <Tab.Screen
         name="Register"
         component={RegisterScreen}
@@ -70,6 +74,14 @@ const BottomTabNavigator = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="add-circle" size={size} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            if (!isAuthenticatedUser) {
+              e.preventDefault();
+              Alert.alert('Login Required', 'Please login to register a chat');
+            }
+          },
         }}
       />
       <Tab.Screen
@@ -79,6 +91,14 @@ const BottomTabNavigator = () => {
           tabBarIcon: ({ color, size }) => (
             <Icon name="favorite" size={size} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            if (!isAuthenticatedUser) {
+              e.preventDefault();
+              Alert.alert('Login Required', 'Please login to view favorites');
+            }
+          },
         }}
       />
     </Tab.Navigator>

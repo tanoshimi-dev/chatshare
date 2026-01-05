@@ -227,7 +227,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             style={styles.dummyButton}
             onPress={handleDummyLogin}
           >
-            <Text style={styles.buttonText}>Login (Demo)</Text>
+            <Text style={styles.buttonText}>Demo</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

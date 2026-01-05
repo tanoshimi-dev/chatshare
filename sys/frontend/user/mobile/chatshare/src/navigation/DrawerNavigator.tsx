@@ -22,9 +22,9 @@ const DrawerNavigator = () => {
         overlayColor: 'transparent',
       }}>
       <Drawer.Screen name="Tabs" component={BottomTabNavigator} />
-      <Drawer.Screen name="Account" component={AccountScreen} />
+      {/* <Drawer.Screen name="Account" component={AccountScreen} />
       <Drawer.Screen name="History" component={HistoryScreen} />
-      <Drawer.Screen name="Settings" component={SettingsScreen} />
+      <Drawer.Screen name="Settings" component={SettingsScreen} /> */}
     </Drawer.Navigator>
   );
 };

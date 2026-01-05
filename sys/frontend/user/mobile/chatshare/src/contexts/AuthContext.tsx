@@ -12,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isLoggedIn: boolean;
+  isAuthenticatedUser: boolean; // true only for real authenticated users (not demo user)
   login: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -101,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const dummyLogin = () => {
     const dummyUser: User = {
       id: '0',
-      email: 'dummy@example.com',
+      email: 'demo@example.com',
       name: 'Demo User',
       avatar: '', // Use Material icon account-circle as default
       provider: '',
@@ -130,10 +131,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Check if user is truly authenticated (not demo user)
+  const isAuthenticatedUser = isLoggedIn && user?.id !== '0';
+
   const value: AuthContextType = {
     user,
     loading,
     isLoggedIn,
+    isAuthenticatedUser,
     login,
     logout,
     refreshUser,

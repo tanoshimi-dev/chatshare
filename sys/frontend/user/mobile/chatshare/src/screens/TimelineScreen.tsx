@@ -41,7 +41,7 @@ type Props = {
 };
 
 const TimelineScreen = ({ navigation }: Props) => {
-  const { user, isLoggedIn } = useAuth();
+  const { user, isAuthenticatedUser } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -253,7 +253,7 @@ const TimelineScreen = ({ navigation }: Props) => {
   };
 
   const handleFavoriteToggle = async (chat: Chat) => {
-    if (!isLoggedIn) {
+    if (!isAuthenticatedUser) {
       Alert.alert('Login Required', 'Please login to favorite chats');
       return;
     }
@@ -413,7 +413,7 @@ const TimelineScreen = ({ navigation }: Props) => {
         </TouchableOpacity>
 
         {/* Profile Avatar or Notification Icon */}
-        {isLoggedIn ? (
+        {isAuthenticatedUser ? (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity 
               style={styles.profileButton}
@@ -439,14 +439,15 @@ const TimelineScreen = ({ navigation }: Props) => {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.notificationButton}>
+            {/* <TouchableOpacity style={styles.notificationButton}>
               <Icon name="notifications-none" size={28} color="#333" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         ) : (
-          <TouchableOpacity style={styles.notificationButton}>
-            <Icon name="notifications-none" size={28} color="#333" />
-          </TouchableOpacity>
+          <></>
+          // <TouchableOpacity style={styles.notificationButton}>
+          //   <Icon name="notifications-none" size={28} color="#333" />
+          // </TouchableOpacity>
         )}
       </View>
 

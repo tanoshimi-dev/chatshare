@@ -11,11 +11,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { fetchCategories, registerChat, Category } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -36,7 +38,7 @@ type RegisterScreenProps = {
 };
 
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
-  const { user, isLoggedIn } = useAuth();
+  const { user, isAuthenticatedUser } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [title, setTitle] = useState('');
@@ -92,7 +94,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 
   const handleShare = async () => {
     // Check if user is logged in
-    if (!isLoggedIn || !user) {
+    if (!isAuthenticatedUser || !user) {
       Alert.alert(
         'Login Required',
         'You need to be logged in to register a chat. Please log in first.',
@@ -175,16 +177,47 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#8FAA7F" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5DC" />
+      
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.menuButton}
           onPress={() => navigation.openDrawer()}>
           <Icon name="menu" size={28} color="#333" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Icon name="notifications-none" size={28} color="#333" />
-        </TouchableOpacity>
+
+        {/* Profile Avatar or Notification Icon */}
+        {isAuthenticatedUser ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={styles.profileButton}
+              onPress={() => navigation.navigate('Account')}>
+              {user?.avatar && user.avatar !== '' ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.profileAvatar}
+                />
+              ) : (
+                <View style={styles.profileAvatarPlaceholder}>
+                  {user?.provider === 'google' ? (
+                    <View style={styles.googleIconContainer}>
+                      <FontAwesome name="google" size={24} color="#4285F4" />
+                    </View>
+                  ) : user?.provider === 'line' ? (
+                    <View style={styles.lineIconContainer}>
+                      <FontAwesome name="comment" size={24} color="#00B900" />
+                    </View>
+                  ) : (
+                    <Icon name="account-circle" size={36} color="#A8B896" />
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <></>
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -286,22 +319,60 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#8FAA7F',
+    backgroundColor: '#A8B896',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 50 : 10,
-    paddingBottom: 10,
-    backgroundColor: '#8FAA7F',
+    paddingTop: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight ? StatusBar.currentHeight : 6),
+    paddingBottom: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: '#A8B896',
+    backgroundColor: '#F5F5DC',
   },
   menuButton: {
     padding: 8,
   },
   notificationButton: {
     padding: 8,
+  },
+  profileButton: {
+    padding: 4,
+  },
+  profileAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#A8B896',
+  },
+  profileAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4285F4',
+  },
+  lineIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#00B900',
   },
   keyboardView: {
     flex: 1,
