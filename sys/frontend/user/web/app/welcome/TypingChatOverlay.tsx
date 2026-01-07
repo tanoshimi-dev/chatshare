@@ -9,9 +9,12 @@ interface Message {
 }
 
 const messages: Message[] = [
-    { text: "Traefikの設定方法について教えてください", isUser: true },
     {
-        text: "Of course! I'd be happy to help. What are you working on?",
+        text: "モバイルアプリでしかできない事は何でしょうか。FlutterやReactnative、PWAなどでモバイルアプリを作ることもできますが",
+        isUser: true,
+    },
+    {
+        text: "いい質問ですね Flutter や React Native、PWA など技術的には「スマホで動くアプリ」を作れますが、「ネイティブに近いモバイルアプリ」でしかできないこともあります。整理すると以下のようになります",
         isUser: false,
     },
     // { text: "I'm learning React and Next.js!", isUser: true },
@@ -38,7 +41,7 @@ export default function TypingChatOverlay() {
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
     const [currentText, setCurrentText] = useState("");
     const [currentCharIndex, setCurrentCharIndex] = useState(0);
-    const [isTyping, setIsTyping] = useState(true);
+    const [, setIsTyping] = useState(true);
 
     useEffect(() => {
         if (currentMessageIndex >= messages.length) {
@@ -106,9 +109,9 @@ export default function TypingChatOverlay() {
             </div>
 
             {/* Chat overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-transparent rounded-2xl shadow-2xl p-4 max-w-md w-full backdrop-blur-none border-0">
-                    <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
+            <div className="absolute inset-0 flex items-start justify-center pt-8 pointer-events-none">
+                <div className="bg-transparent rounded-2xl shadow-2xl p-6 max-w-2xl w-full backdrop-blur-none border-0">
+                    <div className="flex flex-col gap-3">
                         {displayedMessages.map((msg, idx) => (
                             <div
                                 key={idx}
