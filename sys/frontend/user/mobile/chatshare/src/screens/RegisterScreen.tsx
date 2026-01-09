@@ -22,8 +22,10 @@ import { fetchCategories, registerChat, Category } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 type DrawerParamList = {
-  Home: undefined;
+  Timeline: undefined;
   Register: undefined;
+  Favorite: undefined;
+  Account: undefined;
 };
 
 type RootStackParamList = {
@@ -137,7 +139,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
             onPress: () => {
               setTitle('');
               setChatUrl('');
-              navigation.navigate('Home');
+              navigation.navigate('Timeline');
             },
           },
         ]

@@ -52,8 +52,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={styles.drawerContent}>
-        {/* Drawer Menu Items */}
-        {/* 
+        {/* Drawer Menu Items 
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={() => {
@@ -63,7 +62,8 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
           <Icon name="account-circle" size={24} color="#333" style={styles.menuIcon} />
           <Text style={styles.menuItemText}>Account</Text>
         </TouchableOpacity>
-        
+        */}
+        {/* 
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={() => {
