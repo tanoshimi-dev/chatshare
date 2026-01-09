@@ -112,7 +112,9 @@ export const registerChat = async (data: RegisterChatRequest): Promise<Chat> => 
       console.error('RegisterChat - Error response:', errorText);
       
       if (response.status === 401) {
-        throw new Error('Authentication failed. Please log in again.');
+        const error: any = new Error('Your session has expired. Please login again.');
+        error.status = 401;
+        throw error;
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }

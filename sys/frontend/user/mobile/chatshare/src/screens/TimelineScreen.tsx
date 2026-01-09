@@ -41,7 +41,7 @@ type Props = {
 };
 
 const TimelineScreen = ({ navigation }: Props) => {
-  const { user, isAuthenticatedUser } = useAuth();
+  const { user, isAuthenticatedUser, logout } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,7 +59,7 @@ const TimelineScreen = ({ navigation }: Props) => {
       console.log('Fetching chats from API...');
       const data = await fetchPublicChats(1, 20);
       console.log('Chats loaded successfully:', data?.length || 0);
-      console.log('First chat:', data?.[0] ? JSON.stringify(data[0], null, 2) : 'No chats');
+      //console.log('First chat:', data?.[0] ? JSON.stringify(data[0], null, 2) : 'No chats');
       setChats(data || []);
     } catch (err: any) {
       console.error('Error loading chats:', err);
@@ -283,7 +283,25 @@ const TimelineScreen = ({ navigation }: Props) => {
           c.id === chat.id ? { ...c, is_favorited: chat.is_favorited } : c
         )
       );
-      Alert.alert('Error', error.message || 'Failed to update favorite');
+      
+      // Handle 401 session expiration
+      if (error.status === 401) {
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please login again.',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await logout();
+                navigation.navigate('Timeline');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', error.message || 'Failed to update favorite');
+      }
     }
   };
 

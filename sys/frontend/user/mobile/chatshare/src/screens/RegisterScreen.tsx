@@ -40,7 +40,7 @@ type RegisterScreenProps = {
 };
 
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
-  const { user, isAuthenticatedUser } = useAuth();
+  const { user, isAuthenticatedUser, logout } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [title, setTitle] = useState('');
@@ -147,16 +147,17 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     } catch (error: any) {
       console.error('Registration error:', error);
       
-      // Check if it's an authentication error
-      if (error.message?.includes('Authentication failed') || error.message?.includes('No authentication token')) {
+      // Handle 401 session expiration
+      if (error.status === 401) {
         Alert.alert(
-          'Authentication Error',
-          'Your session has expired. Please log in again.',
+          'Session Expired',
+          'Your session has expired. Please login again.',
           [
             {
               text: 'OK',
-              onPress: () => {
-                // User will be redirected to login by RootNavigator
+              onPress: async () => {
+                await logout();
+                navigation.navigate('Timeline');
               },
             },
           ]

@@ -128,7 +128,7 @@ export const fetchPublicChats = async (
     }
 
     const data: ChatListResponse = await response.json();
-    console.log('Response data:', JSON.stringify(data, null, 2));
+    //console.log('Response data:', JSON.stringify(data, null, 2));
 
     if (!data.success) {
       throw new Error(data.message || 'Failed to fetch chats');
@@ -346,6 +346,11 @@ export const addFavorite = async (chatId: string): Promise<void> => {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        const error: any = new Error('Your session has expired. Please login again.');
+        error.status = 401;
+        throw error;
+      }
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to add favorite');
     }
@@ -375,6 +380,11 @@ export const removeFavorite = async (chatId: string): Promise<void> => {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        const error: any = new Error('Your session has expired. Please login again.');
+        error.status = 401;
+        throw error;
+      }
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to remove favorite');
     }
@@ -410,6 +420,11 @@ export const fetchFavoriteChats = async (
     );
 
     if (!response.ok) {
+      if (response.status === 401) {
+        const error: any = new Error('Your session has expired. Please login again.');
+        error.status = 401;
+        throw error;
+      }
       throw new Error(`Failed to fetch favorite chats: ${response.status}`);
     }
 

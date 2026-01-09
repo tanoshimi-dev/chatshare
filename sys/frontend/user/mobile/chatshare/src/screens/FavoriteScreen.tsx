@@ -41,7 +41,7 @@ type Props = {
 };
 
 const FavoriteScreen = ({ navigation }: Props) => {
-  const { isAuthenticatedUser, user } = useAuth();
+  const { isAuthenticatedUser, user, logout } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,7 +64,25 @@ const FavoriteScreen = ({ navigation }: Props) => {
       setChats(data || []);
     } catch (err: any) {
       console.error('Error loading favorites:', err);
-      Alert.alert('Error', 'Failed to load favorites');
+      
+      // Handle 401 session expiration
+      if (err.status === 401) {
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please login again.',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await logout();
+                navigation.navigate('Timeline');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to load favorites');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -81,7 +99,24 @@ const FavoriteScreen = ({ navigation }: Props) => {
       await removeFavorite(chat.id);
       setChats(prevChats => prevChats.filter(c => c.id !== chat.id));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to remove favorite');
+      // Handle 401 session expiration
+      if (error.status === 401) {
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please login again.',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await logout();
+                navigation.navigate('Timeline');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', error.message || 'Failed to remove favorite');
+      }
     }
   };
 
