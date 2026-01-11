@@ -89,6 +89,8 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 				user.GET("/favorites/users", userHandler.ListFavoriteUsers)
 				user.POST("/favorites/users/:id", userHandler.AddFavoriteUser)
 				user.DELETE("/favorites/users/:id", userHandler.RemoveFavoriteUser)
+				// Delete own account
+				user.DELETE("/account", userHandler.DeleteAccount)
 			}
 
 			// Chat management

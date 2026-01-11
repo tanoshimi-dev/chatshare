@@ -400,6 +400,51 @@ export const logout = async (): Promise<void> => {
   }
 };
 
+// Delete account
+export const deleteAccount = async (): Promise<void> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/user/account`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    let data: any = null;
+    try {
+      data = await response.json();
+    } catch (e) {
+      // fallback to text for non-JSON responses
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(text || 'Failed to delete account');
+      }
+      // if ok but not JSON, treat as success
+      data = { success: true, message: text };
+    }
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to delete account');
+    }
+
+    // Clear local session after successful deletion — swallow logout errors
+    try {
+      await logout();
+    } catch (e) {
+      console.warn('deleteAccount: logout failed (ignored)', e);
+    }
+  } catch (error: any) {
+    console.error('Error deleting account:', error);
+    throw new Error(error.message || 'Failed to delete account');
+  }
+};
+
 // Make authenticated API call helper
 export const authenticatedFetch = async (
   url: string,
