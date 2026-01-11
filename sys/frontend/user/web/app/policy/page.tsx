@@ -16,14 +16,17 @@ export default function PrivacyPolicy() {
                 <div className="w-full max-w-3xl prose prose-zinc dark:prose-invert prose-headings:font-semibold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:pt-8 prose-h2:border-t prose-h2:border-zinc-200 dark:prose-h2:border-zinc-800 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-zinc-600 dark:prose-p:text-zinc-400 prose-p:leading-relaxed prose-li:text-zinc-600 dark:prose-li:text-zinc-400">
                     
                     <p className="text-lg leading-8">
-                        ChatShare(以下「当アプリ」)をご利用いただきありがとうございます。本プライバシーポリシーは、当アプリにおける個人情報の取り扱いについて説明するものです。
+                        ChatShare(以下「当アプリ」)をご利用いただきありがとうございます。
+                    </p>
+                    <p className="text-lg leading-8">
+                        本プライバシーポリシーは、当アプリにおける個人情報の取り扱いについて説明するものです。
                     </p>
 
                     <h2 className="mt-4">1. 運営者情報</h2>
                     <ul>
                         <li>サービス名: ChatShare</li>
-                        <li>運営者: [運営者名]</li>
-                        <li>連絡先: [メールアドレス]</li>
+                        <li>運営者: ChatShare運営係</li>
+                        <li>連絡先: support@chatshare.dev</li>
                     </ul>
 
                     <h2 className="mt-4">2. 収集する情報</h2>
@@ -60,7 +63,6 @@ export default function PrivacyPolicy() {
                         <li>アプリバージョン</li>
                         <li>デバイスの言語設定</li>
                         <li>タイムゾーン</li>
-                        <li>プッシュ通知トークン(Firebase Cloud Messaging)</li>
                     </ul>
 
                     <h3 className="mt-2">2.3 利用情報</h3>
@@ -77,7 +79,6 @@ export default function PrivacyPolicy() {
                         <li>ユーザー認証とアカウント管理</li>
                         <li>サービスの提供、維持、改善</li>
                         <li>ユーザーサポートの提供</li>
-                        <li>プッシュ通知の送信</li>
                         <li>アプリのパフォーマンス分析と最適化</li>
                         <li>不正利用の防止とセキュリティの維持</li>
                         <li>新機能の開発と改善</li>
@@ -111,22 +112,7 @@ export default function PrivacyPolicy() {
                         </li>
                     </ul>
 
-                    <h3 className="mt-2">4.3 Firebase (Google)</h3>
-                    <p>当アプリは、以下のFirebaseサービスを使用しています:</p>
-                    <ul>
-                        <li><strong>Firebase Cloud Messaging</strong>: プッシュ通知の配信</li>
-                        <li><strong>Firebase Cloud Firestore</strong>: データの保存と同期</li>
-                        <li><strong>Firebase Cloud Storage</strong>: ファイルの保存</li>
-                        <li><strong>Firebase Admin SDK</strong>: サーバー側のユーザー管理</li>
-                    </ul>
-                    <p>
-                        Firebase プライバシーポリシー:{" "}
-                        <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
-                            https://firebase.google.com/support/privacy
-                        </a>
-                    </p>
-
-                    <h2 className="mt-4">5. 情報の保存と管理</h2>
+                    <h2 className="mt-4">4. 情報の保存と管理</h2>
                     <ul>
                         <li>収集した情報は、適切なセキュリティ対策を講じた上で保管されます</li>
                         <li>データは暗号化されて送信され、安全なサーバーに保存されます</li>
@@ -134,7 +120,7 @@ export default function PrivacyPolicy() {
                         <li>定期的なセキュリティ監査を実施しています</li>
                     </ul>
 
-                    <h2 className="mt-4">6. 情報の共有と開示</h2>
+                    <h2 className="mt-4">5. 情報の共有と開示</h2>
                     <p>当アプリは、以下の場合を除き、収集した情報を第三者に提供することはありません:</p>
                     <ul>
                         <li>ユーザーの同意がある場合</li>
@@ -143,7 +129,7 @@ export default function PrivacyPolicy() {
                         <li>サービスの提供に必要な業務委託先(適切な契約のもと)</li>
                     </ul>
 
-                    <h2 className="mt-4">7. ユーザーの権利</h2>
+                    <h2 className="mt-4">6. ユーザーの権利</h2>
                     <p>ユーザーは、以下の権利を有します:</p>
                     <ul>
                         <li><strong>アクセス権</strong>: 自分の個人情報へのアクセスを要求できます</li>
@@ -154,7 +140,7 @@ export default function PrivacyPolicy() {
                     </ul>
                     <p>これらの権利を行使するには、[連絡先メールアドレス]までご連絡ください。</p>
 
-                    <h2 className="mt-4">8. アカウントの削除</h2>
+                    <h2 className="mt-4">7. アカウントの削除</h2>
                     <p>アカウントを削除する場合:</p>
                     <ol>
                         <li>アプリ内の設定画面から「アカウント削除」を選択</li>
@@ -162,15 +148,7 @@ export default function PrivacyPolicy() {
                     </ol>
                     <p>アカウント削除後、関連する個人情報は30日以内に削除されます。ただし、法令に基づき保持が必要な情報は除きます。</p>
 
-                    <h2 className="mt-4">9. プッシュ通知</h2>
-                    <p>当アプリは、Firebase Cloud Messagingを使用してプッシュ通知を送信します:</p>
-                    <ul>
-                        <li>通知の有効/無効は、デバイスの設定から変更できます</li>
-                        <li>通知の送信には、デバイストークンが使用されます</li>
-                        <li>不要な通知を送信しないよう努めます</li>
-                    </ul>
-
-                    <h2 className="mt-4">10. Cookie・トラッキング技術</h2>
+                    <h2 className="mt-4">8. Cookie・トラッキング技術</h2>
                     <p>当アプリは、サービスの改善とパフォーマンス分析のため、以下の技術を使用します:</p>
                     <ul>
                         <li>セッション管理のためのトークン</li>
@@ -178,13 +156,13 @@ export default function PrivacyPolicy() {
                         <li>アプリの動作に必要な技術的情報</li>
                     </ul>
 
-                    <h2 className="mt-4">11. 子どもの個人情報</h2>
+                    <h2 className="mt-4">9. 子どもの個人情報</h2>
                     <p>当アプリは、13歳未満のお子様を対象としたサービスではありません。13歳未満のお子様が個人情報を提供したことが判明した場合、速やかに削除いたします。</p>
 
-                    <h2 className="mt-4">12. 国際的なデータ転送</h2>
+                    <h2 className="mt-4">10. 国際的なデータ転送</h2>
                     <p>収集された情報は、サービス提供のため、日本国外のサーバー(主にGoogleのデータセンター)に転送・保存される場合があります。これらのサーバーは、適切なセキュリティ対策が講じられています。</p>
 
-                    <h2 className="mt-4">13. データ保持期間</h2>
+                    <h2 className="mt-4">11. データ保持期間</h2>
                     <ul>
                         <li>アカウント情報: アカウント削除まで</li>
                         <li>利用履歴: 最大2年間</li>
@@ -192,15 +170,8 @@ export default function PrivacyPolicy() {
                         <li>バックアップデータ: 最大30日間</li>
                     </ul>
 
-                    <h2 className="mt-4">14. プライバシーポリシーの変更</h2>
+                    <h2 className="mt-4">12. プライバシーポリシーの変更</h2>
                     <p>当アプリは、必要に応じて本プライバシーポリシーを変更することがあります。重要な変更がある場合は、アプリ内通知またはメールでお知らせします。</p>
-
-                    <h2 className="mt-4">15. お問い合わせ</h2>
-                    <p>プライバシーポリシーに関するご質問やご意見は、以下までご連絡ください:</p>
-                    <ul>
-                        <li>メール: [連絡先メールアドレス]</li>
-                        <li>対応時間: [営業日・営業時間]</li>
-                    </ul>
 
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-6 rounded-lg mt-12 mb-8 border border-purple-200 dark:border-purple-800">
                         <h3 className="text-lg font-bold text-black dark:text-zinc-50 mt-0">同意について</h3>
