@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -212,6 +213,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
     }
   };
 
+  const openPrivacyPolicy = async () => {
+    const url = 'https://chatshare.dev/policy';
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Unable to open link', url);
+      }
+    } catch (error: any) {
+      Alert.alert('Unable to open link', error?.message || 'An error occurred');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -265,7 +280,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
-            By signing in, you agree to our Terms of Service and Privacy Policy
+            By signing in, you agree to our Terms of Service and
+            {'\n'}
+            <Text style={styles.linkText} onPress={openPrivacyPolicy}>
+              Privacy Policy
+            </Text>
           </Text>
         </View>
       </View>
@@ -398,6 +417,10 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  linkText: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
   },
 });
 
