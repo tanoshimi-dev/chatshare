@@ -121,7 +121,7 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	// Exchange authorization code for token
 	var token *oauth2.Token
 	var err error
-	
+
 	// Mobile SDK flow (no state): use empty redirect URI
 	// Web OAuth flow (with state): use configured redirect URI
 	if req.State == "" {
@@ -138,7 +138,7 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		// Web OAuth flow: use configured redirect URI
 		token, err = h.googleConfig.Exchange(ctx, req.Code)
 	}
-	
+
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("Failed to exchange token: %v", err))
 		return
@@ -224,6 +224,24 @@ func (h *AuthHandler) GetLINEOAuthURL(c *gin.Context) {
 	})
 }
 
+// LINECallbackGET handles LINE OAuth callback via GET request (from LIFF redirects)
+// GET /api/v1/auth/line/callback?code=xxx&state=xxx
+func (h *AuthHandler) LINECallbackGET(c *gin.Context) {
+	// Get query parameters
+	code := c.Query("code")
+	state := c.Query("state")
+
+	if code == "" || state == "" {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Missing code or state parameter")
+		return
+	}
+
+	// Process the callback using common logic
+	h.processLINECallback(c, code, state)
+}
+
+// LINECallback handles LINE OAuth callback via POST request (from mobile apps)
+// POST /api/v1/auth/line/callback
 func (h *AuthHandler) LINECallback(c *gin.Context) {
 	// Parse request body
 	var req struct {
@@ -236,9 +254,16 @@ func (h *AuthHandler) LINECallback(c *gin.Context) {
 		return
 	}
 
+	// Process the callback using common logic
+	h.processLINECallback(c, req.Code, req.State)
+}
+
+// processLINECallback contains the shared logic for both GET and POST callbacks
+func (h *AuthHandler) processLINECallback(c *gin.Context, code, state string) {
+
 	// Validate state token
 	ctx := context.Background()
-	valid, err := h.sessionStore.ValidateAndDeleteState(ctx, req.State)
+	valid, err := h.sessionStore.ValidateAndDeleteState(ctx, state)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to validate state")
 		return
@@ -249,7 +274,7 @@ func (h *AuthHandler) LINECallback(c *gin.Context) {
 	}
 
 	// Exchange code for token
-	token, err := h.lineConfig.Exchange(ctx, req.Code)
+	token, err := h.lineConfig.Exchange(ctx, code)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to exchange token")
 		return
