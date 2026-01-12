@@ -136,8 +136,10 @@ class EmulatorDetector {
     const {
       androidEmulatorUrl = Config.API_URL_ANDROID_EMULATOR,
       iosSimulatorUrl = Config.API_URL_IOS_SIMULATOR,
-      realDeviceUrl = Config.API_URL_ANDROID,
-      productionUrl = 'https://api.production.com',
+      // Prefer explicit platform URL, fall back to general API_BASE_URL
+      realDeviceUrl = Config.API_URL_ANDROID || Config.API_URL_IOS || Config.API_BASE_URL,
+      // Use configured API_BASE_URL for production by default
+      productionUrl = Config.API_BASE_URL || 'https://api.production.com',
     } = config;
 
     if (!__DEV__) {
