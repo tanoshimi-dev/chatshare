@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "YOUR_TEAM_ID.YOUR_BUNDLE_ID"
+        ],
+        "components": [
+          {
+            "/": "*",
+            "comment": "Matches all paths"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "YOUR_TEAM_ID.YOUR_BUNDLE_ID"
+    ]
+  }
+}

@@ -25,11 +25,15 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 	categoryHandler := handlers.NewCategoryHandler(db, cfg)
 	commentHandler := handlers.NewCommentHandler(db, cfg)
 	adminHandler := handlers.NewAdminHandler(db, cfg)
+	wellKnownHandler := handlers.NewWellKnownHandler("./static")
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// Well-known endpoints (Apple App Site Association)
+	r.GET("/.well-known/apple-app-site-association", wellKnownHandler.AppleAppSiteAssociation)
 
 	// API v1
 	v1 := r.Group("/api/v1")
@@ -43,8 +47,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 
 			// LINE OAuth
 			auth.GET("/line/url", authHandler.GetLINEOAuthURL)
-			auth.GET("/line/callback", authHandler.LINECallbackGET)  // For LIFF redirects
-			auth.POST("/line/callback", authHandler.LINECallback)    // For API calls
+			auth.POST("/line/callback", authHandler.LINECallback)
 
 			// Current user (requires auth)
 			auth.GET("/me", middleware.AuthMiddleware(cfg), authHandler.GetCurrentUser)
