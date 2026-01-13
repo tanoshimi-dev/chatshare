@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 // import { Config } from 'react-native-config';
 import Config from 'react-native-config';
 import EmulatorDetector from '../constants/EmulatorDetector';
+import NetworkDiagnostics from '../services/NetworkDiagnostics';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<any>;
@@ -227,6 +228,35 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
     }
   };
 
+  const handleNetworkDebug = async () => {
+    try {
+      console.log('🔍 Running network diagnostics...');
+      const diagnostics = await NetworkDiagnostics.getNetworkStatus();
+      
+      let message = `API URL: ${diagnostics.environment.apiUrl}\n`;
+      message += `Environment: ${diagnostics.environment.isDev ? 'Development' : 'Production'}\n`;
+      message += `Device: ${diagnostics.environment.deviceInfo.deviceType}\n\n`;
+      
+      if (diagnostics.connectivity.success) {
+        message += '✅ Basic connectivity: OK\n';
+      } else {
+        message += `❌ Basic connectivity: ${diagnostics.connectivity.error}\n`;
+      }
+      
+      if (diagnostics.authentication?.success) {
+        message += '✅ Authentication: OK\n';
+      } else if (diagnostics.authentication?.hasToken) {
+        message += `❌ Authentication: ${diagnostics.authentication.error}\n`;
+      } else {
+        message += '⚠️ Authentication: No token (not logged in)\n';
+      }
+      
+      Alert.alert('Network Diagnostics', message);
+    } catch (error: any) {
+      Alert.alert('Debug Error', error.message || 'Failed to run diagnostics');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -277,6 +307,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
                 <Text style={styles.buttonText}>Sign in with LINE</Text>
               </>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.debugButton}
+            onPress={handleNetworkDebug}
+          >
+            <Text style={styles.debugButtonText}>🔍 Network Debug</Text>
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
@@ -411,6 +448,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  debugButton: {
+    backgroundColor: '#666',
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   termsText: {
     fontSize: 12,
