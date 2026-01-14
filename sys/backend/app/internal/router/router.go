@@ -47,9 +47,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 
 			// LINE OAuth
 			auth.GET("/line/url", authHandler.GetLINEOAuthURL)
-			auth.POST("/line/callback", authHandler.LINECallback)
-
-			// Current user (requires auth)
+			auth.GET("/line/callback", authHandler.LINECallbackGET)
 			auth.GET("/me", middleware.AuthMiddleware(cfg), authHandler.GetCurrentUser)
 
 			// Logout

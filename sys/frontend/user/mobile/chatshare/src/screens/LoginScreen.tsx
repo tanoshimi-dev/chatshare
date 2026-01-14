@@ -66,12 +66,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             // Exchange code for token
             const state = await AsyncStorage.getItem('line_oauth_state');
             const callbackResponse = await fetch(
-              `${API_BASE_URL}/auth/line/callback`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: authCode, state }),
-              }
+              `${API_BASE_URL}/auth/line/callback?code=${encodeURIComponent(authCode)}&state=${encodeURIComponent(state || '')}`
             );
 
             const callbackData = await callbackResponse.json();
