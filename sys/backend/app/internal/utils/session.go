@@ -30,6 +30,19 @@ func (s *SessionStore) StoreState(ctx context.Context, state string) error {
 	return s.redisClient.Set(ctx, key, "valid", StateTokenExpiration).Err()
 }
 
+// ValidateState validates OAuth state token without deleting it
+func (s *SessionStore) ValidateState(ctx context.Context, state string) (bool, error) {
+	key := StateTokenPrefix + state
+
+	// Check if state exists
+	exists, err := s.redisClient.Exists(ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+
+	return exists > 0, nil
+}
+
 // ValidateAndDeleteState validates and deletes OAuth state token (one-time use)
 func (s *SessionStore) ValidateAndDeleteState(ctx context.Context, state string) (bool, error) {
 	key := StateTokenPrefix + state
