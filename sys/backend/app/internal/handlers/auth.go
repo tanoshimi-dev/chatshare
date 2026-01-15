@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/chatshare/backend/internal/config"
@@ -200,6 +201,10 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 // LINE OAuth - Get OAuth URL
 // GET /api/v1/auth/line/url
 func (h *AuthHandler) GetLINEOAuthURL(c *gin.Context) {
+	// Debug: Log the LINE configuration
+	fmt.Printf("DEBUG: LINE Config - ClientID: %s\n", h.lineConfig.ClientID)
+	fmt.Printf("DEBUG: LINE Config - RedirectURL: %s\n", h.lineConfig.RedirectURL)
+	
 	// Generate state token
 	state, err := utils.GenerateRandomString(32)
 	if err != nil {
@@ -216,6 +221,10 @@ func (h *AuthHandler) GetLINEOAuthURL(c *gin.Context) {
 
 	// Generate OAuth URL
 	url := h.lineConfig.AuthCodeURL(state)
+	
+	// Debug: Log the generated URL
+	fmt.Printf("DEBUG: Generated LINE OAuth URL: %s\n", url)
+	fmt.Printf("DEBUG: State token: %s\n", state)
 
 	// Return format matching the guide
 	utils.SuccessResponse(c, http.StatusOK, gin.H{
@@ -230,14 +239,56 @@ func (h *AuthHandler) LINECallbackGET(c *gin.Context) {
 	// Get query parameters
 	code := c.Query("code")
 	state := c.Query("state")
+	errorParam := c.Query("error")
+	errorDescription := c.Query("error_description")
 
-	if code == "" || state == "" {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Missing code or state parameter")
+	// Debug: Log the User-Agent and request details
+	userAgent := c.GetHeader("User-Agent")
+	fmt.Printf("DEBUG: LINE Callback - User-Agent: %s\n", userAgent)
+	fmt.Printf("DEBUG: LINE Callback - All Headers: %v\n", c.Request.Header)
+	
+	// Check for OAuth errors
+	if errorParam != "" {
+		fmt.Printf("DEBUG: OAuth error received: %s - %s\n", errorParam, errorDescription)
+		// Always redirect to custom URL scheme for any OAuth errors since they likely come from mobile
+		redirectURL := fmt.Sprintf("chatshare://auth/line/callback?error=%s", url.QueryEscape(errorParam))
+		if errorDescription != "" {
+			redirectURL += fmt.Sprintf("&error_description=%s", url.QueryEscape(errorDescription))
+		}
+		fmt.Printf("DEBUG: Redirecting to: %s\n", redirectURL)
+		c.Redirect(http.StatusFound, redirectURL)
 		return
 	}
 
-	// Process the callback using common logic
-	h.processLINECallback(c, code, state)
+	if code == "" || state == "" {
+		fmt.Printf("DEBUG: Missing code or state parameter\n")
+		// Assume mobile and redirect to custom URL scheme with error
+		c.Redirect(http.StatusFound, "chatshare://auth/line/callback?error=invalid_request&error_description=Missing+code+or+state+parameter")
+		return
+	}
+
+	// For mobile clients, just validate state without deleting it
+	// The mobile app will use the POST endpoint which will delete the state
+	ctx := context.Background()
+	valid, err := h.sessionStore.ValidateState(ctx, state) // Don't delete yet
+	if err != nil {
+		fmt.Printf("DEBUG: State validation error in GET: %v\n", err)
+		c.Redirect(http.StatusFound, "chatshare://auth/line/callback?error=invalid_state&error_description=State+validation+failed")
+		return
+	}
+	if !valid {
+		fmt.Printf("DEBUG: Invalid state token in GET: %s\n", state)
+		c.Redirect(http.StatusFound, "chatshare://auth/line/callback?error=invalid_state&error_description=Invalid+or+expired+state+token")
+		return
+	}
+
+	// For now, always assume this is a mobile client since we're primarily targeting mobile
+	// TODO: Improve detection based on referrer or custom parameters
+	fmt.Printf("DEBUG: Processing as mobile client, redirecting to custom URL scheme\n")
+	redirectURL := fmt.Sprintf("chatshare://auth/line/callback?code=%s&state=%s", 
+		url.QueryEscape(code), url.QueryEscape(state))
+	fmt.Printf("DEBUG: Redirecting to: %s\n", redirectURL)
+	c.Redirect(http.StatusFound, redirectURL)
 }
 
 // LINECallback handles LINE OAuth callback via POST request (from mobile apps)
@@ -265,17 +316,22 @@ func (h *AuthHandler) processLINECallback(c *gin.Context, code, state string) {
 	ctx := context.Background()
 	valid, err := h.sessionStore.ValidateAndDeleteState(ctx, state)
 	if err != nil {
+		fmt.Printf("DEBUG: State validation error: %v\n", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to validate state")
 		return
 	}
 	if !valid {
+		fmt.Printf("DEBUG: Invalid state token: %s\n", state)
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid or expired state token")
 		return
 	}
 
+	fmt.Printf("DEBUG: State validation successful, proceeding with token exchange\n")
+
 	// Exchange code for token
 	token, err := h.lineConfig.Exchange(ctx, code)
 	if err != nil {
+		fmt.Printf("DEBUG: Token exchange error: %v\n", err)
 		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to exchange token")
 		return
 	}

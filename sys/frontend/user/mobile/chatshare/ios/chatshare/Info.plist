@@ -32,6 +32,16 @@
 				<string>com.googleusercontent.apps.684998272240-qlleg3j5n7ng8arucbt6h7a9bnse76bk</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>chatshare.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>chatshare</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>

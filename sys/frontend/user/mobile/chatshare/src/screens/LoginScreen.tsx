@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -42,7 +42,141 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
     configureLineLogin(); // Now synchronous, returns boolean
   }, []);
 
-  // Check for LINE auth callback results when screen is focused
+  // Handle deep links for LINE login callback
+  useEffect(() => {
+    const handleDeepLink = async (url: string) => {
+      console.log('🔗 Deep link received:', url);
+      
+      if (url.startsWith('chatshare://auth/line/callback')) {
+        console.log('✅ LINE callback deep link detected');
+        try {
+          const urlObj = new URL(url);
+          const code = urlObj.searchParams.get('code');
+          const error = urlObj.searchParams.get('error');
+          const errorDescription = urlObj.searchParams.get('error_description');
+
+          console.log('📋 Parsed params:', { code, error, errorDescription });
+
+          if (error) {
+            const errorMessage = errorDescription || error;
+            console.log('❌ OAuth error:', errorMessage);
+            if (error !== 'access_denied') { // access_denied means user cancelled
+              Alert.alert('Login Failed', errorMessage);
+            }
+            setLineLoading(false);
+            return;
+          }
+
+          if (code) {
+            console.log('🔄 Processing authorization code:', code);
+            // Exchange code for token using POST endpoint
+            const state = await AsyncStorage.getItem('line_oauth_state');
+            console.log('📝 Retrieved state from storage:', state);
+            
+            const callbackResponse = await fetch(
+              `${API_BASE_URL}/auth/line/callback`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  code: code,
+                  state: state || ''
+                })
+              }
+            );
+
+            console.log('📡 Backend response status:', callbackResponse.status);
+            console.log('📡 Backend response headers:', callbackResponse.headers);
+            
+            // Get raw text first to debug JSON parsing issues
+            const responseText = await callbackResponse.text();
+            console.log('📄 Backend raw response:', responseText);
+            
+            let callbackData;
+            try {
+              callbackData = JSON.parse(responseText);
+              console.log('📄 Backend parsed data:', callbackData);
+            } catch (parseError) {
+              console.error('💥 JSON parse error:', parseError);
+              console.error('💥 Raw response that failed to parse:', responseText);
+              throw new Error(`Invalid response from server: ${responseText.substring(0, 100)}...`);
+            }
+
+            if (!callbackData.success) {
+              throw new Error(callbackData.message);
+            }
+
+            const authResponse = callbackData.data;
+
+            // Store auth data
+            await AsyncStorage.setItem('auth_token', authResponse.token);
+            await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
+
+            console.log('✅ Login successful for user:', authResponse.user.name);
+            Alert.alert('Success', `Welcome ${authResponse.user.name}!`, [
+              {
+                text: 'OK',
+                onPress: async () => {
+                  console.log('🔄 User clicked OK on success dialog');
+                  try {
+                    console.log('🔄 Calling refreshUser...');
+                    await refreshUser();
+                    console.log('✅ refreshUser completed');
+                    
+                    if (onLoginSuccess) {
+                      console.log('🚀 Calling onLoginSuccess callback');
+                      onLoginSuccess();
+                    } else {
+                      console.log('✅ No onLoginSuccess callback - relying on auth state change for navigation');
+                      // Don't manually navigate - let the RootNavigator handle the state change
+                      // The authentication state change will automatically trigger navigation to Main screen
+                    }
+                    console.log('✅ Login success flow completed');
+                  } catch (error) {
+                    console.error('💥 Error in login success flow:', error);
+                  }
+                },
+              },
+            ]);
+            setLineLoading(false);
+          }
+        } catch (error: any) {
+          console.error('💥 Deep link processing error:', error);
+          Alert.alert('Login Failed', error.message);
+          setLineLoading(false);
+        }
+      } else {
+        console.log('ℹ️ Non-LINE deep link received:', url);
+      }
+    };
+
+    console.log('🎯 Setting up deep link listeners...');
+
+    // Listen for deep links when app is already running
+    const linkingSubscription = Linking.addEventListener('url', (event) => {
+      console.log('🔔 Deep link event received:', event.url);
+      handleDeepLink(event.url);
+    });
+
+    // Check if app was opened by a deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('🚀 App opened with initial deep link:', url);
+        handleDeepLink(url);
+      } else {
+        console.log('📱 App opened normally (no deep link)');
+      }
+    });
+
+    return () => {
+      console.log('🧹 Cleaning up deep link listeners');
+      linkingSubscription?.remove();
+    };
+  }, [API_BASE_URL, onLoginSuccess, refreshUser]);
+
+  // Check for LINE auth callback results when screen is focused (legacy WebView support)
   useFocusEffect(
     React.useCallback(() => {
       const checkLineCallback = async () => {
@@ -63,10 +197,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
           }
 
           if (authCode) {
-            // Exchange code for token
+            // Exchange code for token using POST endpoint
             const state = await AsyncStorage.getItem('line_oauth_state');
             const callbackResponse = await fetch(
-              `${API_BASE_URL}/auth/line/callback?code=${encodeURIComponent(authCode)}&state=${encodeURIComponent(state || '')}`
+              `${API_BASE_URL}/auth/line/callback`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  code: authCode,
+                  state: state || ''
+                })
+              }
             );
 
             const callbackData = await callbackResponse.json();
@@ -185,12 +329,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
       }
     
       console.log("Using LINE Channel ID:", Config.LINE_CHANNEL_ID);
-      //console.log("Using API Base URL:", `${Config.API_BASE_URL}/auth/line/url`);
       console.log("Using API Base URL:", `${API_BASE_URL}/auth/line/url`);
 
       // Get OAuth URL from backend
-      //const urlResponse = await fetch(`${Config.API_BASE_URL}/auth/line/url`);
-      const urlResponse = await fetch(`${API_BASE_URL}/auth/line/url`);
+      const urlResponse = await fetch(`${API_BASE_URL}/auth/line/url`, {
+        headers: {
+          'User-Agent': 'ChatShare-Mobile/1.0',
+        },
+      });
       const urlData = await urlResponse.json();
 
       if (!urlData.success) {
@@ -200,8 +346,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
       const { url, state } = urlData.data;
       await AsyncStorage.setItem("line_oauth_state", state);
 
-      // Navigate to WebView (callback will be handled when screen refocuses)
-      navigation.navigate("LineLoginWebView", { url });
+      // Open LINE OAuth URL in system browser for better deep link handling
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+        // Don't set lineLoading to false here - it will be handled by deep link callback
+      } else {
+        throw new Error("Cannot open LINE login URL");
+      }
     } catch (error: any) {
       console.error("LINE sign in error:", error);
       Alert.alert("Sign In Failed", error.message || "An error occurred");

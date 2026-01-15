@@ -95,7 +95,7 @@ services:
             - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-http://localhost/api/v1/auth/google/callback}
             - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
             - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
-            - LINE_REDIRECT_URL=${LINE_REDIRECT_URL:-http://localhost/api/v1/auth/line/callback}
+            - LINE_REDIRECT_URL=${LINE_REDIRECT_URL:-http://192.168.0.241/api/v1/auth/line/callback}
             - SENDGRID_API_KEY=${SENDGRID_API_KEY}
             - FROM_EMAIL=${FROM_EMAIL:-noreply@chatshare.com}
             - FROM_NAME=ChatShare
