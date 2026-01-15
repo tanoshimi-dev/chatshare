@@ -26,6 +26,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 	commentHandler := handlers.NewCommentHandler(db, cfg)
 	adminHandler := handlers.NewAdminHandler(db, cfg)
 
+	// Root redirect - redirect to production welcome page
+	r.GET("/", func(c *gin.Context) {
+		c.Redirect(302, "https://chatshare.dev/welcome")
+	})
+
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -137,6 +142,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 			admin.GET("/statistics", adminHandler.GetStatistics)
 		}
 	}
+
+	// Catch-all route for undefined paths - redirect to production welcome page
+	r.NoRoute(func(c *gin.Context) {
+		c.Redirect(302, "https://chatshare.dev/welcome")
+	})
 
 	return r
 }
