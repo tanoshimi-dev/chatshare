@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/chatshare/backend/internal/config"
@@ -250,45 +249,39 @@ func (h *AuthHandler) LINECallbackGET(c *gin.Context) {
 	// Check for OAuth errors
 	if errorParam != "" {
 		fmt.Printf("DEBUG: OAuth error received: %s - %s\n", errorParam, errorDescription)
-		// Always redirect to custom URL scheme for any OAuth errors since they likely come from mobile
-		redirectURL := fmt.Sprintf("chatshare://auth/line/callback?error=%s", url.QueryEscape(errorParam))
-		if errorDescription != "" {
-			redirectURL += fmt.Sprintf("&error_description=%s", url.QueryEscape(errorDescription))
+		// Return a simple HTML page that closes the window or shows error
+		errorMsg := errorDescription
+		if errorMsg == "" {
+			errorMsg = errorParam
 		}
-		fmt.Printf("DEBUG: Redirecting to: %s\n", redirectURL)
-		c.Redirect(http.StatusFound, redirectURL)
+		c.Header("Content-Type", "text/html")
+		c.String(http.StatusOK, `
+			<!DOCTYPE html>
+			<html><head><meta charset="utf-8"><title>Login Failed</title></head>
+			<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+				<h2>Login Failed</h2>
+				<p>%s</p>
+				<script>setTimeout(() => { window.close(); }, 3000);</script>
+			</body></html>`, errorMsg)
 		return
 	}
 
 	if code == "" || state == "" {
 		fmt.Printf("DEBUG: Missing code or state parameter\n")
-		// Assume mobile and redirect to custom URL scheme with error
-		c.Redirect(http.StatusFound, "chatshare://auth/line/callback?error=invalid_request&error_description=Missing+code+or+state+parameter")
+		c.Header("Content-Type", "text/html")
+		c.String(http.StatusBadRequest, `
+			<!DOCTYPE html>
+			<html><head><meta charset="utf-8"><title>Login Failed</title></head>
+			<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+				<h2>Login Failed</h2>
+				<p>Missing required parameters</p>
+				<script>setTimeout(() => { window.close(); }, 3000);</script>
+			</body></html>`)
 		return
 	}
 
-	// For mobile clients, just validate state without deleting it
-	// The mobile app will use the POST endpoint which will delete the state
-	ctx := context.Background()
-	valid, err := h.sessionStore.ValidateState(ctx, state) // Don't delete yet
-	if err != nil {
-		fmt.Printf("DEBUG: State validation error in GET: %v\n", err)
-		c.Redirect(http.StatusFound, "chatshare://auth/line/callback?error=invalid_state&error_description=State+validation+failed")
-		return
-	}
-	if !valid {
-		fmt.Printf("DEBUG: Invalid state token in GET: %s\n", state)
-		c.Redirect(http.StatusFound, "chatshare://auth/line/callback?error=invalid_state&error_description=Invalid+or+expired+state+token")
-		return
-	}
-
-	// For now, always assume this is a mobile client since we're primarily targeting mobile
-	// TODO: Improve detection based on referrer or custom parameters
-	fmt.Printf("DEBUG: Processing as mobile client, redirecting to custom URL scheme\n")
-	redirectURL := fmt.Sprintf("chatshare://auth/line/callback?code=%s&state=%s", 
-		url.QueryEscape(code), url.QueryEscape(state))
-	fmt.Printf("DEBUG: Redirecting to: %s\n", redirectURL)
-	c.Redirect(http.StatusFound, redirectURL)
+	// Process the callback directly
+	h.processLINECallback(c, code, state)
 }
 
 // LINECallback handles LINE OAuth callback via POST request (from mobile apps)
@@ -317,12 +310,37 @@ func (h *AuthHandler) processLINECallback(c *gin.Context, code, state string) {
 	valid, err := h.sessionStore.ValidateAndDeleteState(ctx, state)
 	if err != nil {
 		fmt.Printf("DEBUG: State validation error: %v\n", err)
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to validate state")
+		// Check if this is a mobile WebView request by looking at Accept header or User-Agent
+		if isMobileWebView(c) {
+			c.Header("Content-Type", "text/html")
+			c.String(http.StatusInternalServerError, `
+				<!DOCTYPE html>
+				<html><head><meta charset="utf-8"><title>Login Failed</title></head>
+				<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+					<h2>Login Failed</h2>
+					<p>Failed to validate state</p>
+					<script>setTimeout(() => { window.close(); }, 3000);</script>
+				</body></html>`)
+		} else {
+			utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to validate state")
+		}
 		return
 	}
 	if !valid {
 		fmt.Printf("DEBUG: Invalid state token: %s\n", state)
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid or expired state token")
+		if isMobileWebView(c) {
+			c.Header("Content-Type", "text/html")
+			c.String(http.StatusBadRequest, `
+				<!DOCTYPE html>
+				<html><head><meta charset="utf-8"><title>Login Failed</title></head>
+				<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+					<h2>Login Failed</h2>
+					<p>Invalid or expired state token</p>
+					<script>setTimeout(() => { window.close(); }, 3000);</script>
+				</body></html>`)
+		} else {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid or expired state token")
+		}
 		return
 	}
 
@@ -332,7 +350,19 @@ func (h *AuthHandler) processLINECallback(c *gin.Context, code, state string) {
 	token, err := h.lineConfig.Exchange(ctx, code)
 	if err != nil {
 		fmt.Printf("DEBUG: Token exchange error: %v\n", err)
-		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to exchange token")
+		if isMobileWebView(c) {
+			c.Header("Content-Type", "text/html")
+			c.String(http.StatusInternalServerError, `
+				<!DOCTYPE html>
+				<html><head><meta charset="utf-8"><title>Login Failed</title></head>
+				<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+					<h2>Login Failed</h2>
+					<p>Failed to exchange authorization code</p>
+					<script>setTimeout(() => { window.close(); }, 3000);</script>
+				</body></html>`)
+		} else {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Failed to exchange token")
+		}
 		return
 	}
 
@@ -383,10 +413,79 @@ func (h *AuthHandler) processLINECallback(c *gin.Context, code, state string) {
 	isProduction := h.cfg.Environment == "production"
 	utils.SetAuthCookie(c, jwtToken, isProduction)
 
-	utils.SuccessResponse(c, http.StatusOK, gin.H{
-		"token": jwtToken,
-		"user":  user,
-	})
+	// Check if this is a mobile WebView request
+	if isMobileWebView(c) {
+		// Return HTML success page for mobile WebView
+		userJSON, _ := json.Marshal(user)
+		c.Header("Content-Type", "text/html")
+		c.String(http.StatusOK, `
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<meta charset="utf-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Login Successful</title>
+			</head>
+			<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+				<h2>✅ Login Successful!</h2>
+				<p>Welcome %s!</p>
+				<p>Redirecting back to the app...</p>
+				<script>
+					// Store auth data for the app
+					window.authData = {
+						token: "%s",
+						user: %s
+					};
+					
+					// Try to communicate with React Native WebView first
+					function tryWebViewMessage() {
+						if (window.ReactNativeWebView) {
+							console.log("Sending message via ReactNativeWebView");
+							window.ReactNativeWebView.postMessage(JSON.stringify({
+								type: "LOGIN_SUCCESS",
+								data: window.authData
+							}));
+							return true;
+						}
+						return false;
+					}
+					
+					// Fallback: Custom URL scheme redirect for LINE app flow
+					function redirectToApp() {
+						const customUrl = "chatshare://auth/success?token=" + encodeURIComponent(window.authData.token) + "&user=" + encodeURIComponent(JSON.stringify(window.authData.user));
+						console.log("Redirecting to app:", customUrl);
+						
+						// Show manual instructions immediately alongside automatic redirect attempt
+						document.body.innerHTML = '<div style="padding: 20px;"><h2>✅ Login Complete</h2><p>Opening ChatShare app...</p><button onclick="window.location.href=\'' + customUrl + '\'" style="background: #00B900; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; margin-top: 20px; cursor: pointer;">Open ChatShare App</button><p style="font-size: 14px; color: #666; margin-top: 20px;">If the app doesn\'t open automatically, please tap the button above.</p></div>';
+						
+						// Try to redirect immediately
+						window.location.href = customUrl;
+					}
+					
+					// Try WebView message first, then fallback to custom URL
+					if (!tryWebViewMessage()) {
+						// Not in WebView, use custom URL scheme
+						console.log("Not in WebView, using custom URL redirect");
+						redirectToApp();
+					} else {
+						// In WebView, but also try custom URL as fallback after delay
+						setTimeout(() => {
+							if (window.location.href.includes('backend.chatshare.dev')) {
+								console.log("Still in browser, trying custom URL redirect");
+								redirectToApp();
+							}
+						}, 2000);
+					}
+				</script>
+			</body>
+			</html>`, user.Name, jwtToken, string(userJSON))
+	} else {
+		// Return JSON response for API calls
+		utils.SuccessResponse(c, http.StatusOK, gin.H{
+			"token": jwtToken,
+			"user":  user,
+		})
+	}
 }
 
 func (h *AuthHandler) findOrCreateUser(ctx context.Context, email, name, avatar, provider, providerID string, emailVerified bool) (*database.User, string, error) {
@@ -488,4 +587,17 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 func timePtr(t time.Time) *time.Time {
 	return &t
+}
+
+// isMobileWebView checks if the request is coming from a mobile WebView
+func isMobileWebView(c *gin.Context) bool {
+	userAgent := c.GetHeader("User-Agent")
+	accept := c.GetHeader("Accept")
+	
+	// Check for mobile WebView patterns
+	return userAgent != "" && (
+		// React Native WebView
+		c.GetHeader("User-Agent") != "" && 
+		// Accept HTML (indicates WebView vs API call)
+		(accept == "" || accept != "application/json"))
 }
