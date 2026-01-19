@@ -372,7 +372,6 @@ const TimelineScreen = ({ navigation }: Props) => {
               <Icon name="edit" size={18} color="#666" />
             </TouchableOpacity>
           )}
-          <Icon name="launch" size={16} color="#666" />
         </View>
       </View>
 
