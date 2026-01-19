@@ -171,21 +171,7 @@ const EditChatModal: React.FC<EditChatModalProps> = ({
                 <ActivityIndicator size="small" color="#A8B896" />
               ) : (
                 <ScrollView style={styles.categoryList} horizontal showsHorizontalScrollIndicator={false}>
-                  <TouchableOpacity
-                    style={[
-                      styles.categoryChip,
-                      !selectedCategoryId && styles.categoryChipSelected,
-                    ]}
-                    onPress={() => setSelectedCategoryId('')}
-                    disabled={loading}>
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        !selectedCategoryId && styles.categoryChipTextSelected,
-                      ]}>
-                      None
-                    </Text>
-                  </TouchableOpacity>
+
                   {categories.map(category => (
                     <TouchableOpacity
                       key={category.id}

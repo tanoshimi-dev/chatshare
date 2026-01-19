@@ -314,12 +314,19 @@ func (h *ChatHandler) DeleteChat(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.Delete(&chat).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete chat")
-		return
-	}
+	       // Delete related favorites (not logical delete)
+		       if err := h.db.Where("chat_id = ?", chatID).Delete(&database.Favorite{}).Error; err != nil {
+			       utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete related favorites")
+			       return
+		       }
 
-	utils.MessageResponse(c, http.StatusOK, "Chat deleted successfully")
+		       // Hard delete (physical delete) the chat record
+		       if err := h.db.Unscoped().Delete(&chat).Error; err != nil {
+			       utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete chat")
+			       return
+		       }
+
+		       utils.MessageResponse(c, http.StatusOK, "Chat and related favorites deleted successfully")
 }
 
 // Favorite operations
