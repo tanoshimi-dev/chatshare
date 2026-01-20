@@ -1,10 +1,12 @@
+
 package handlers
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
-
 	"github.com/chatshare/backend/internal/config"
 	"github.com/chatshare/backend/internal/database"
 	"github.com/chatshare/backend/internal/utils"
@@ -65,6 +67,124 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	if chatType == "" {
 		chatType = utils.DetectChatTypeFromURL(req.PublicLink)
 	}
+
+	// Validation 1 ChatType
+	validTypes := map[string]bool{
+		"chatgpt": true,
+		"claude": true,
+		"copilot": true,
+		// "gemini": true, // Disable Gemini for now
+	}
+	if !validTypes[chatType] {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Unknown chat type")
+		return
+	}
+
+	// Validation 2 URL format
+	parsedURL, err := url.ParseRequestURI(req.PublicLink)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid chat link URL format")
+		return
+	}
+
+	// Validation 3 not localhost
+	// Exclude vulnerable link registration (localhost, private IPs, file URLs)
+	host := parsedURL.Hostname()
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" || strings.HasPrefix(host, "192.168.") || strings.HasPrefix(host, "10.") || strings.HasPrefix(host, "172.") || parsedURL.Scheme == "file" {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Vulnerable or local links are not allowed")
+		return
+	}
+
+	// Validation 4 accessible
+	// Whitelist: skip accessibility check for trusted share URLs
+	whitelistPatterns := []string{
+		"https://claude.ai/share/",
+		"https://copilot.microsoft.com/shares/",
+		"https://chatgpt.com/share/",
+		"https://gemini.google.com/share/",
+	}
+	skipAccessibility := false
+	for _, pattern := range whitelistPatterns {
+		if strings.HasPrefix(req.PublicLink, pattern) {
+			skipAccessibility = true
+			break
+		}
+	}
+	if !skipAccessibility {
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) >= 10 {
+					return http.ErrUseLastResponse
+				}
+				req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+				req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+				req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+				return nil
+			},
+		}
+		reqCheck, err := http.NewRequest("GET", req.PublicLink, nil)
+		if err != nil {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Chat link is not accessible")
+			return
+		}
+		reqCheck.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+		reqCheck.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+		reqCheck.Header.Set("Accept-Language", "en-US,en;q=0.5")
+		resp, err := client.Do(reqCheck)
+		if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			var bodyPreview string
+			if resp != nil && resp.Body != nil {
+				buf := make([]byte, 1024)
+				n, _ := resp.Body.Read(buf)
+				bodyPreview = string(buf[:n])
+			}
+			msg := "Chat link is not accessible.\nURL: " + req.PublicLink + "\nStatus: "
+			if resp != nil {
+				msg += http.StatusText(resp.StatusCode) + " (" + strconv.Itoa(resp.StatusCode) + ")"
+			} else {
+				msg += "No response received"
+			}
+			if bodyPreview != "" {
+				msg += "\nResponse preview: " + bodyPreview
+			}
+			utils.ErrorResponse(c, http.StatusBadRequest, msg)
+			return
+		}
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}
+
+	// Validation 5 protocol is https
+	if parsedURL.Scheme != "https" {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Only HTTPS links are allowed")
+		return
+	}
+
+	// Validation 6 top-level service URLs
+	// Block top-level service URLs (not user-created public links)
+	topLevelInvalid := map[string]struct{}{
+		"https://copilot.microsoft.com/": {},
+		"https://gemini.google.com/app": {},
+		"https://chatgpt.com/": {},
+		"https://claude.ai/new": {},
+	}
+	// Normalize input URL for comparison (strip trailing slash)
+	normalized := req.PublicLink
+	if strings.HasSuffix(normalized, "/") {
+		normalized = normalized[:len(normalized)-1]
+	}
+	for k := range topLevelInvalid {
+		kNorm := k
+		if strings.HasSuffix(kNorm, "/") {
+			kNorm = kNorm[:len(kNorm)-1]
+		}
+		if normalized == kNorm {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Top-level service URLs are not allowed. Please provide a user-created public link.")
+			return
+		}
+	}
+
 
 	chat := database.Chat{
 		ID:          uuid.New(),

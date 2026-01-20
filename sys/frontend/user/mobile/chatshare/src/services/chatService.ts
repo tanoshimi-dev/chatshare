@@ -133,7 +133,7 @@ export const fetchPublicChats = async (
     }
 
     const data: ChatListResponse = await response.json();
-    console.log('Response data:', JSON.stringify(data, null, 2));
+    //console.log('Response data:', JSON.stringify(data, null, 2));
 
     if (!data.success) {
       throw new Error(data.message || 'Failed to fetch chats');
