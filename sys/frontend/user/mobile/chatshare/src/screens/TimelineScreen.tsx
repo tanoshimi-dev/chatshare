@@ -241,15 +241,17 @@ const TimelineScreen = ({ navigation }: Props) => {
     if (chatType === 'claude') return 'Claude';
     if (chatType === 'copilot') return 'Copilot';
     if (chatType === 'chatgpt') return 'ChatGPT';
-    return 'ChatGPT'; // default
+    if (chatType === 'gemini') return 'Gemini';
+    return 'Unknown'; // default
   };
 
   const getChatTypeColor = (chat: Chat): string => {
     const chatType = chat.chat_type;
-    if (chatType === 'claude') return '#CC9B7A';
-    if (chatType === 'copilot') return '#8E75E8';
-    if (chatType === 'chatgpt') return '#10A37F';
-    return '#10A37F'; // default to ChatGPT green
+    if (chatType === 'claude') return '#da9971';
+    if (chatType === 'copilot') return '#3c9bc6';
+    if (chatType === 'chatgpt') return '#161313';
+    if (chatType === 'gemini') return '#6396ef';
+    return '#b90000'; // default to ChatGPT green
   };
 
   const handleFavoriteToggle = async (chat: Chat) => {

@@ -25,8 +25,13 @@ export const detectChatTypeFromUrl = (url: string): string => {
     return 'chatgpt';
   }
 
-  // Default to ChatGPT if no match
-  return 'chatgpt';
+  // Check for Gemini
+  if (lowerUrl.includes('gemini.google.com') || lowerUrl.includes('ai.google.dev/gemini')) {
+    return 'gemini';
+  }
+
+  // Default to unknown if no match
+  return 'unknown';
 };
 
 export interface Chat {
@@ -128,7 +133,7 @@ export const fetchPublicChats = async (
     }
 
     const data: ChatListResponse = await response.json();
-    //console.log('Response data:', JSON.stringify(data, null, 2));
+    console.log('Response data:', JSON.stringify(data, null, 2));
 
     if (!data.success) {
       throw new Error(data.message || 'Failed to fetch chats');
