@@ -219,7 +219,6 @@ const FavoriteScreen = ({ navigation }: Props) => {
               <Icon name="edit" size={20} color="#666" />
             </TouchableOpacity>
           )}
-          <Icon name="launch" size={16} color="#666" />
         </View>
       </View>
 

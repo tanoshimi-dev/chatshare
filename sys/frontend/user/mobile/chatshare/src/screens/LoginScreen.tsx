@@ -477,7 +477,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             style={styles.debugButton}
             onPress={handleNetworkDebug}
           >
-            <Text style={styles.debugButtonText}>🔍 Network Debug ver 10</Text>
+            <Text style={styles.debugButtonText}>🔍 Network Debug ver 12</Text>
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
