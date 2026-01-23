@@ -6,7 +6,7 @@ import {
   StatusBar,
   TouchableOpacity,
   Platform,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
   RefreshControl,
   Alert,
@@ -51,6 +51,9 @@ const FavoriteUsersScreen = ({ navigation }: Props) => {
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     if (isAuthenticatedUser) {
@@ -60,10 +63,22 @@ const FavoriteUsersScreen = ({ navigation }: Props) => {
     }
   }, [isAuthenticatedUser]);
 
-  const loadFavorites = async () => {
+  const loadFavorites = async (pageNum: number = 1, append: boolean = false) => {
     try {
-      const data = await fetchFavoriteUsers(1, 100);
-      setUsers(data || []);
+      const data = await fetchFavoriteUsers(pageNum, 20);
+      
+      if (append) {
+        setUsers(prev => [...prev, ...(data || [])]);
+      } else {
+        setUsers(data || []);
+      }
+      
+      // Check if there are more items to load
+      if (!data || data.length < 20) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
     } catch (err: any) {
       console.error('Error loading favorite users:', err);
       if (err.status === 401) {
@@ -82,12 +97,25 @@ const FavoriteUsersScreen = ({ navigation }: Props) => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadFavorites();
+    setPage(1);
+    setHasMore(true);
+    loadFavorites(1, false);
+  };
+
+  const loadMoreFavorites = () => {
+    if (!loadingMore && !loading && hasMore) {
+      console.log('Loading more favorite users...');
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadFavorites(nextPage, true);
+    }
   };
 
   const handleRemoveFavoriteUser = async (userId: string) => {
@@ -161,39 +189,49 @@ const FavoriteUsersScreen = ({ navigation }: Props) => {
           <Text style={styles.loadingText}>Loading favorites...</Text>
         </View>
       ) : (
-        <ScrollView
-          style={styles.scrollContent}
+        <FlatList
+          data={users}
+          renderItem={({ item: u }) => (
+            <TouchableOpacity style={styles.chatItem} onPress={() => {}}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={styles.userAvatar}>
+                    {u.avatar ? <Image source={{ uri: u.avatar }} style={styles.userAvatarImage} /> : <Icon name="account-circle" size={32} color="#666" />}
+                  </View>
+                  <View style={styles.userDetails}>
+                    <Text style={styles.username}>{u.name || 'Anonymous'}</Text>
+                    <Text style={styles.timestamp}>{(u.favorited_count || 0) + ' favorited'}</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.likeContainer} onPress={() => handleRemoveFavoriteUser(u.id)} accessibilityLabel="Remove favorite">
+                  <Icon name="delete" size={20} />
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={["#A8B896"]} tintColor="#A8B896" />
-          }>
-          {users.length === 0 ? (
+          }
+          onEndReached={loadMoreFavorites}
+          onEndReachedThreshold={0.5}
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Icon name="favorite-border" size={64} color="#999" />
               <Text style={styles.emptyText}>No favorite users yet</Text>
               <Text style={styles.emptySubText}>Tap the heart icon on a user's chat to add them to your favorites</Text>
             </View>
-          ) : (
-            users.map(u => (
-              <TouchableOpacity key={u.id} style={styles.chatItem} onPress={() => {}}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={styles.userAvatar}>
-                      {u.avatar ? <Image source={{ uri: u.avatar }} style={styles.userAvatarImage} /> : <Icon name="account-circle" size={32} color="#666" />}
-                    </View>
-                    <View style={styles.userDetails}>
-                      <Text style={styles.username}>{u.name || 'Anonymous'}</Text>
-                      <Text style={styles.timestamp}>{(u.favorited_count || 0) + ' favorited'}</Text>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity style={styles.likeContainer} onPress={() => handleRemoveFavoriteUser(u.id)} accessibilityLabel="Remove favorite">
-                    <Icon name="delete" size={20} />
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color="#A8B896" />
+              </View>
+            ) : null
+          }
+        />
       )}
 
     </View>
@@ -219,8 +257,9 @@ const styles = StyleSheet.create({
   profileAvatarPlaceholder: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   googleIconContainer: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#4285F4' },
   lineIconContainer: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#00B900' },
-  scrollContent: { flex: 1, padding: 16 },
+  scrollContent: { padding: 16 },
   chatItem: { backgroundColor: '#F5F5DC', borderRadius: 12, padding: 16, marginBottom: 16 },
+  loadingMoreContainer: { paddingVertical: 20, alignItems: 'center' },
   userAvatar: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   userAvatarImage: { width: 32, height: 32, borderRadius: 16 },
   userDetails: { flexDirection: 'column' },

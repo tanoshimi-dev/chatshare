@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  ScrollView,
+  FlatList,
   Platform,
   Image,
   ActivityIndicator,
@@ -48,19 +48,34 @@ const TimelineScreen = ({ navigation }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     loadChats();
   }, []);
 
-  const loadChats = async () => {
+  const loadChats = async (pageNum: number = 1, append: boolean = false) => {
     try {
       setError(null);
-      console.log('Fetching chats from API...');
-      const data = await fetchPublicChats(1, 20);
+      console.log(`Fetching chats from API (page ${pageNum})...`);
+      const data = await fetchPublicChats(pageNum, 10);
       console.log('Chats loaded successfully:', data?.length || 0);
       //console.log('First chat:', data?.[0] ? JSON.stringify(data[0], null, 2) : 'No chats');
-      setChats(data || []);
+      
+      if (append) {
+        setChats(prev => [...prev, ...(data || [])]);
+      } else {
+        setChats(data || []);
+      }
+      
+      // Check if there are more items to load
+      if (!data || data.length < 10) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
     } catch (err: any) {
       console.error('Error loading chats:', err);
       console.error('Error details:', JSON.stringify(err, null, 2));
@@ -205,17 +220,32 @@ const TimelineScreen = ({ navigation }: Props) => {
       // ];
       // setChats(mockChats);
       
-      setChats([]);
+      if (!append) {
+        setChats([]);
+      }
       setError(null); // Clear error since we're showing mock data
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadChats();
+    setPage(1);
+    setHasMore(true);
+    loadChats(1, false);
+  };
+
+  const loadMoreChats = () => {
+    if (!loadingMore && !loading && hasMore) {
+      console.log('Loading more chats...');
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadChats(nextPage, true);
+    }
   };
 
   const handleChatPress = (chat: Chat) => {
@@ -564,8 +594,11 @@ const TimelineScreen = ({ navigation }: Props) => {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
-          style={styles.scrollContent}
+        <FlatList
+          data={chats}
+          renderItem={({ item }) => renderChatItem(item)}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -573,16 +606,23 @@ const TimelineScreen = ({ navigation }: Props) => {
               colors={['#A8B896']}
               tintColor="#A8B896"
             />
-          }>
-          {chats.length === 0 ? (
+          }
+          onEndReached={loadMoreChats}
+          onEndReachedThreshold={0.5}
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Icon name="chat-bubble-outline" size={64} color="#999" />
               <Text style={styles.emptyText}>No chats yet</Text>
             </View>
-          ) : (
-            chats.map(renderChatItem)
-          )}
-        </ScrollView>
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color="#A8B896" />
+              </View>
+            ) : null
+          }
+        />
       )}
 
       <EditChatModal
@@ -658,7 +698,6 @@ const styles = StyleSheet.create({
     borderColor: '#00B900',
   },
   scrollContent: {
-    flex: 1,
     padding: 16,
   },
   chatItem: {
@@ -808,6 +847,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#999',
+  },
+  loadingMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
 });
 
