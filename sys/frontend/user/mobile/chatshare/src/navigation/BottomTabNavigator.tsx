@@ -68,11 +68,11 @@ const BottomTabNavigator = () => {
         }}
       /> */}
       <Tab.Screen
-        name="Register"
+        name="Share"
         component={RegisterScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Icon name="add-circle" size={size} color={color} />
+            <Icon name="share" size={size} color={color} />
           ),
         }}
         listeners={{
