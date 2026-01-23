@@ -144,7 +144,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             
             // Close WebView if it's still open
             console.log('🔙 Attempting to close LineLoginWebView...');
-            navigation.goBack();
+            // try {
+            //   if (navigation.canGoBack && navigation.canGoBack()) {
+            //     navigation.goBack();
+            //   } else {
+            //     console.log('ℹ️ No screen to go back to; skipping goBack()');
+            //   }
+            // } catch (e) {
+            //   console.log('⚠️ navigation.goBack() skipped or failed:', e);
+            // }
             
             // Small delay to ensure navigation completes
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -220,12 +228,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             console.log('✅ refreshUser completed after return');
             
             // Close WebView if it's still open
-            console.log('🔙 Attempting to close LineLoginWebView after focus...');
-            try {
-              navigation.goBack();
-            } catch (e) {
-              console.log('⚠️ Navigation goBack failed (may already be on LoginScreen):', e);
-            }
+            // console.log('🔙 Attempting to close LineLoginWebView after focus...');
+            // try {
+            //   if (navigation.canGoBack && navigation.canGoBack()) {
+            //     navigation.goBack();
+            //   } else {
+            //     console.log('ℹ️ No screen to go back to after focus; skipping goBack()');
+            //   }
+            // } catch (e) {
+            //   console.log('⚠️ Navigation goBack failed (may already be on LoginScreen):', e);
+            // }
             
             // Small delay to ensure navigation completes
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -295,38 +307,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
       setLoading(false);
     }
   };
-
-  // const handleLineSignIn = async () => {
-  //   setLineLoading(true);
-  //   try {
-  //     const authResponse = await signInWithLine();
-
-  //     Alert.alert(
-  //       'Success',
-  //       `Welcome ${authResponse.user.name}!`,
-  //       [
-  //         {
-  //           text: 'OK',
-  //           onPress: () => {
-  //             if (onLoginSuccess) {
-  //               onLoginSuccess();
-  //             } else {
-  //               navigation.navigate('Home');
-  //             }
-  //           },
-  //         },
-  //       ]
-  //     );
-  //   } catch (error: any) {
-  //     console.error('LINE sign in error:', error);
-  //     Alert.alert(
-  //       'Sign In Failed',
-  //       error.message || 'An error occurred during LINE sign in. Please try again.'
-  //     );
-  //   } finally {
-  //     setLineLoading(false);
-  //   }
-  // };
 
   const handleLineSignIn = async () => {
     setLineLoading(true);
