@@ -65,6 +65,16 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
           </TouchableOpacity>
         )}
         
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => {
+            props.navigation.closeDrawer();
+            props.navigation.navigate('SearchSettings');
+          }}>
+          <Icon name="search" size={24} color="#333" style={styles.menuIcon} />
+          <Text style={styles.menuItemText}>Search Settings</Text>
+        </TouchableOpacity>
+        
         {/* 
         <TouchableOpacity 
           style={styles.menuItem}

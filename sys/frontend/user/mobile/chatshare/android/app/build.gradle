@@ -89,7 +89,7 @@ android {
         applicationId "app.dev.chatshare"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 13
+        versionCode 15
         versionName "1.0"
     }
     signingConfigs {

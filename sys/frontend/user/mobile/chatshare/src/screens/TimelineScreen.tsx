@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,20 +18,25 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchPublicChats, Chat, addFavoriteUser, removeFavoriteUser, addGood, removeGood } from '../services/chatService';
+import { fetchPublicChats, searchChatsAdvanced, SearchFilters, Chat, addFavoriteUser, removeFavoriteUser, addGood, removeGood } from '../services/chatService';
 import EditChatModal from '../components/EditChatModal';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { getDefaultSearch } from '../services/searchService';
 
 type DrawerParamList = {
-  Timeline: undefined;
+  Timeline: { searchFilters?: SearchFilters } | undefined;
   Detail: undefined;
   Account: undefined;
+  SearchSettings: undefined;
 };
 
 type StackParamList = {
-  Timeline: undefined;
+  Timeline: { searchFilters?: SearchFilters } | undefined;
   Detail: undefined;
   ShareDetail: { url: string };
 };
+
+type TimelineRouteProp = RouteProp<DrawerParamList, 'Timeline'>;
 
 type Props = {
   navigation: CompositeNavigationProp<
@@ -41,9 +46,10 @@ type Props = {
 };
 
 const TimelineScreen = ({ navigation }: Props) => {
+  const route = useRoute<TimelineRouteProp>();
   const { user, isAuthenticatedUser, logout } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false so loadChats can run
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -51,18 +57,195 @@ const TimelineScreen = ({ navigation }: Props) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(route.params?.searchFilters || null);
+  const isInitialMount = useRef(true);
+  const prevFiltersRef = useRef<SearchFilters | null>(null);
+  const defaultSearchLoaded = useRef(false);
+  const prevAuthState = useRef(isAuthenticatedUser);
+  const initialLoadDone = useRef(false);
+
+  // Handle auth state changes (login/logout)
+  useEffect(() => {
+    // User just logged in (auth changed from false to true)
+    if (!prevAuthState.current && isAuthenticatedUser) {
+      console.log('User logged in - loading default search settings');
+      initialLoadDone.current = false;
+      loadDefaultSearchAfterLogin();
+    }
+    // User just logged out (auth changed from true to false)
+    else if (prevAuthState.current && !isAuthenticatedUser) {
+      console.log('User logged out - clearing search filters');
+      setSearchFilters(null);
+      prevFiltersRef.current = null;
+      defaultSearchLoaded.current = false;
+      initialLoadDone.current = false;
+      setPage(1);
+      setHasMore(true);
+      loadChats(1, false, null);
+    }
+    prevAuthState.current = isAuthenticatedUser;
+  }, [isAuthenticatedUser]);
+
+  const loadDefaultSearchAfterLogin = async () => {
+    try {
+      const defaultSearch = await getDefaultSearch();
+      if (defaultSearch) {
+        console.log('Loaded default search settings after login:', defaultSearch);
+        const filters: SearchFilters = {
+          categoryId: defaultSearch.category_id || undefined,
+          chatType: defaultSearch.chat_type || undefined,
+          dateFrom: defaultSearch.date_from || undefined,
+          dateTo: defaultSearch.date_to || undefined,
+          sortBy: defaultSearch.sort_by || 'created_at',
+          sortOrder: defaultSearch.sort_order || 'desc',
+        };
+        setSearchFilters(filters);
+        prevFiltersRef.current = filters;
+        defaultSearchLoaded.current = true;
+        setPage(1);
+        setHasMore(true);
+        loadChats(1, false, filters);
+        initialLoadDone.current = true;
+      } else {
+        console.log('No default search found after login - loading all chats');
+        setSearchFilters(null);
+        prevFiltersRef.current = null;
+        defaultSearchLoaded.current = true;
+        setPage(1);
+        setHasMore(true);
+        loadChats(1, false, null);
+        initialLoadDone.current = true;
+      }
+    } catch (err) {
+      console.log('Error loading default search after login:', err);
+      setSearchFilters(null);
+      prevFiltersRef.current = null;
+      defaultSearchLoaded.current = true;
+      setPage(1);
+      setHasMore(true);
+      loadChats(1, false, null);
+      initialLoadDone.current = true;
+    }
+  };
+
+  // Load default search settings on mount
+  useEffect(() => {
+    const loadDefaultSearch = async () => {
+      if (defaultSearchLoaded.current || initialLoadDone.current) return;
+      
+      // Only load default search if user is authenticated
+      if (!isAuthenticatedUser) {
+        defaultSearchLoaded.current = true;
+        // Load chats without filters for non-authenticated users
+        if (isInitialMount.current) {
+          isInitialMount.current = false;
+          loadChats(1, false, null);
+          initialLoadDone.current = true;
+        }
+        return;
+      }
+      
+      try {
+        const defaultSearch = await getDefaultSearch();
+        if (defaultSearch) {
+          console.log('Loaded default search settings on mount:', defaultSearch);
+          const filters: SearchFilters = {
+            categoryId: defaultSearch.category_id || undefined,
+            chatType: defaultSearch.chat_type || undefined,
+            dateFrom: defaultSearch.date_from || undefined,
+            dateTo: defaultSearch.date_to || undefined,
+            sortBy: defaultSearch.sort_by || 'created_at',
+            sortOrder: defaultSearch.sort_order || 'desc',
+          };
+          setSearchFilters(filters);
+          prevFiltersRef.current = filters;
+          defaultSearchLoaded.current = true;
+          
+          // Load chats with the default filters
+          if (isInitialMount.current) {
+            isInitialMount.current = false;
+            console.log('Loading initial chats with default filters:', filters);
+            loadChats(1, false, filters);
+            initialLoadDone.current = true;
+          }
+        } else {
+          defaultSearchLoaded.current = true;
+          // No default search - load all chats
+          if (isInitialMount.current) {
+            isInitialMount.current = false;
+            console.log('Loading initial chats without filters');
+            loadChats(1, false, null);
+            initialLoadDone.current = true;
+          }
+        }
+      } catch (err) {
+        console.log('No default search settings or error loading:', err);
+        defaultSearchLoaded.current = true;
+        // Load all chats on error
+        if (isInitialMount.current) {
+          isInitialMount.current = false;
+          console.log('Loading initial chats without filters (error)');
+          loadChats(1, false, null);
+          initialLoadDone.current = true;
+        }
+      }
+    };
+
+    loadDefaultSearch();
+  }, [isAuthenticatedUser]);
 
   useEffect(() => {
-    loadChats();
-  }, []);
+    console.log('Route params changed:', route.params?.searchFilters);
+    // Only reload when filters actually change, not on initial mount
+    if (!isInitialMount.current && route.params?.searchFilters) {
+      const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(route.params.searchFilters);
+      console.log('Filters changed?', filtersChanged, 'prev:', prevFiltersRef.current, 'new:', route.params.searchFilters);
+      if (filtersChanged) {
+        prevFiltersRef.current = route.params.searchFilters;
+        setSearchFilters(route.params.searchFilters);
+        setPage(1);
+        setHasMore(true);
+        // Don't set loading here - let loadChats handle it
+        console.log('Loading chats with new filters');
+        loadChats(1, false, route.params.searchFilters);
+      }
+    }
+  }, [route.params?.searchFilters]);
 
-  const loadChats = async (pageNum: number = 1, append: boolean = false) => {
+  const loadChats = async (pageNum: number = 1, append: boolean = false, filters?: SearchFilters | null) => {
+    // Prevent concurrent requests
+    if (loading || (append && loadingMore)) {
+      console.log('Request already in progress, skipping...');
+      return;
+    }
+
     try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
-      console.log(`Fetching chats from API (page ${pageNum})...`);
-      const data = await fetchPublicChats(pageNum, 10);
+      const activeFilters = filters !== undefined ? filters : searchFilters;
+      
+      console.log('=== Loading chats ===');
+      console.log('Page:', pageNum);
+      console.log('Append:', append);
+      console.log('Active filters:', JSON.stringify(activeFilters, null, 2));
+      
+      let data;
+      if (activeFilters && (activeFilters.categoryId || activeFilters.chatType || activeFilters.dateFrom || activeFilters.dateTo || activeFilters.userId)) {
+        console.log(`Searching chats with filters (page ${pageNum}):`, activeFilters);
+        data = await searchChatsAdvanced(activeFilters, pageNum, 10);
+        console.log('Search results:', data?.length || 0, 'chats');
+      } else {
+        console.log(`Fetching chats from API (page ${pageNum})...`);
+        data = await fetchPublicChats(pageNum, 10);
+        console.log('Fetch results:', data?.length || 0, 'chats');
+      }
       console.log('Chats loaded successfully:', data?.length || 0);
-      //console.log('First chat:', data?.[0] ? JSON.stringify(data[0], null, 2) : 'No chats');
+      console.log('First chat:', data?.[0] ? data[0].title : 'No chats');
+      console.log('===================');
       
       if (append) {
         setChats(prev => [...prev, ...(data || [])]);
@@ -80,150 +263,14 @@ const TimelineScreen = ({ navigation }: Props) => {
       console.error('Error loading chats:', err);
       console.error('Error details:', JSON.stringify(err, null, 2));
       
-      // Fallback to mock data if API fails
-      console.log('Using mock data as fallback');
-      // const mockChats: Chat[] = [
-      //   {
-      //     id: '1',
-      //     title: 'Goの特徴、ポインターレシーバーなど',
-      //     description: 'Goの特徴、ポインターレシーバーなど',
-      //     public_link: 'https://chat.openai.com/share/example1',
-      //     user_id: 'user1',
-      //     chat_type: 'chatgpt',
-      //     is_public: true,
-      //     is_link_valid: true,
-      //     status: 'active',
-      //     favorite_count: 122,
-      //     view_count: 450,
-      //     share_count: 10,
-      //     created_at: '2026-01-01T11:11:00Z',
-      //     updated_at: '2026-01-01T11:11:00Z',
-      //     user: {
-      //       id: 'user1',
-      //       name: 'mitakik25',
-      //       email: 'mitakik25@example.com',
-      //       provider: 'google',
-      //     },
-      //     category: {
-      //       id: 'cat1',
-      //       name: '開発',
-      //       slug: 'development',
-      //     },
-      //   },
-      //   {
-      //     id: '2',
-      //     title: 'React Nativeでの認証フロー実装',
-      //     description: 'React Nativeでの認証フロー実装について詳しく解説',
-      //     public_link: 'https://claude.ai/share/example2',
-      //     user_id: 'user1',
-      //     chat_type: 'claude',
-      //     is_public: true,
-      //     is_link_valid: true,
-      //     status: 'active',
-      //     favorite_count: 98,
-      //     view_count: 320,
-      //     share_count: 5,
-      //     created_at: '2026-01-01T10:30:00Z',
-      //     updated_at: '2026-01-01T10:30:00Z',
-      //     user: {
-      //       id: 'user1',
-      //       name: 'mitakik25',
-      //       email: 'mitakik25@example.com',
-      //       provider: 'google',
-      //     },
-      //     category: {
-      //       id: 'cat1',
-      //       name: '開発',
-      //       slug: 'development',
-      //     },
-      //   },
-      //   {
-      //     id: '3',
-      //     title: 'TypeScriptのジェネリクスについて',
-      //     description: 'TypeScriptのジェネリクスについて',
-      //     public_link: 'https://copilot.microsoft.com/share/example3',
-      //     user_id: 'user1',
-      //     chat_type: 'copilot',
-      //     is_public: true,
-      //     is_link_valid: true,
-      //     status: 'active',
-      //     favorite_count: 156,
-      //     view_count: 580,
-      //     share_count: 8,
-      //     created_at: '2026-01-01T09:15:00Z',
-      //     updated_at: '2026-01-01T09:15:00Z',
-      //     user: {
-      //       id: 'user1',
-      //       name: 'mitakik25',
-      //       email: 'mitakik25@example.com',
-      //       provider: 'line',
-      //     },
-      //     category: {
-      //       id: 'cat1',
-      //       name: '開発',
-      //       slug: 'development',
-      //     },
-      //   },
-      //   {
-      //     id: '4',
-      //     title: 'モバイルUIのベストプラクティス',
-      //     description: 'モバイルUIのベストプラクティス',
-      //     public_link: 'https://chat.openai.com/share/example4',
-      //     user_id: 'user2',
-      //     chat_type: 'chatgpt',
-      //     is_public: true,
-      //     is_link_valid: true,
-      //     status: 'active',
-      //     favorite_count: 203,
-      //     view_count: 750,
-      //     share_count: 12,
-      //     created_at: '2026-01-01T08:45:00Z',
-      //     updated_at: '2026-01-01T08:45:00Z',
-      //     user: {
-      //       id: 'user2',
-      //       name: 'designer_user',
-      //       email: 'designer@example.com',
-      //     },
-      //     category: {
-      //       id: 'cat2',
-      //       name: 'デザイン',
-      //       slug: 'design',
-      //     },
-      //   },
-      //   {
-      //     id: '5',
-      //     title: 'Docker Composeでの環境構築手順',
-      //     description: 'Docker Composeでの環境構築手順',
-      //     public_link: 'https://claude.ai/share/example5',
-      //     user_id: 'user1',
-      //     chat_type: 'claude',
-      //     is_public: true,
-      //     is_link_valid: true,
-      //     status: 'active',
-      //     favorite_count: 87,
-      //     view_count: 290,
-      //     share_count: 4,
-      //     created_at: '2025-12-31T22:30:00Z',
-      //     updated_at: '2025-12-31T22:30:00Z',
-      //     user: {
-      //       id: 'user1',
-      //       name: 'mitakik25',
-      //       email: 'mitakik25@example.com',
-      //       provider: 'google',
-      //     },
-      //     category: {
-      //       id: 'cat1',
-      //       name: '開発',
-      //       slug: 'development',
-      //     },
-      //   },
-      // ];
-      // setChats(mockChats);
+      // Set error message for user
+      const errorMessage = err.message || 'Failed to load chats';
+      setError(errorMessage);
       
+      // Clear chats on error if not appending
       if (!append) {
         setChats([]);
       }
-      setError(null); // Clear error since we're showing mock data
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -235,16 +282,24 @@ const TimelineScreen = ({ navigation }: Props) => {
     setRefreshing(true);
     setPage(1);
     setHasMore(true);
-    loadChats(1, false);
+    loadChats(1, false, searchFilters);
+  };
+
+  const clearSearchFilters = () => {
+    prevFiltersRef.current = null;
+    setSearchFilters(null);
+    setPage(1);
+    setHasMore(true);
+    // Don't set loading here - let loadChats handle it
+    loadChats(1, false, null);
   };
 
   const loadMoreChats = () => {
     if (!loadingMore && !loading && hasMore) {
-      console.log('Loading more chats...');
-      setLoadingMore(true);
+      console.log('Loading more chats, current page:', page);
       const nextPage = page + 1;
       setPage(nextPage);
-      loadChats(nextPage, true);
+      loadChats(nextPage, true, searchFilters);
     }
   };
 
@@ -579,6 +634,23 @@ const TimelineScreen = ({ navigation }: Props) => {
         )}
       </View>
 
+      {/* Search Filters Indicator */}
+      {searchFilters && (searchFilters.categoryId || searchFilters.chatType || searchFilters.dateFrom || searchFilters.dateTo) && (
+        <View style={styles.filterBanner}>
+          <View style={styles.filterBannerContent}>
+            <Icon name="filter-list" size={20} color="#7c4803ff" />
+            <Text style={styles.filterBannerText}>
+              Filters active
+              {searchFilters.chatType && ` · ${searchFilters.chatType}`}
+              {searchFilters.dateFrom && ` · From ${searchFilters.dateFrom}`}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={clearSearchFilters} style={styles.clearFilterButton}>
+            <Text style={styles.clearFilterText}>Clear</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Timeline Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -589,7 +661,7 @@ const TimelineScreen = ({ navigation }: Props) => {
         <View style={styles.errorContainer}>
           <Icon name="error-outline" size={64} color="#999" />
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadChats}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => loadChats()}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -654,6 +726,38 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: '#A8B896',
     backgroundColor: '#F5F5DC',
+  },
+  filterBanner: {
+    backgroundColor: '#f0f4e8',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e8d8',
+  },
+  filterBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  filterBannerText: {
+    fontSize: 14,
+    color: '#7c4803ff',
+    fontWeight: '500',
+  },
+  clearFilterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#7c4803ff',
+    borderRadius: 6,
+  },
+  clearFilterText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
   },
   menuButton: {
     padding: 8,

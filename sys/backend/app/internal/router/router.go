@@ -25,6 +25,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 	categoryHandler := handlers.NewCategoryHandler(db, cfg)
 	commentHandler := handlers.NewCommentHandler(db, cfg)
 	adminHandler := handlers.NewAdminHandler(db, cfg)
+	savedSearchHandler := handlers.NewSavedSearchHandler(db, cfg)
 
 	// Root redirect - redirect to production welcome page
 	r.GET("/", func(c *gin.Context) {
@@ -68,6 +69,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 
 			// Search and rankings
 			public.GET("/search", searchHandler.SearchChats)
+			public.GET("/search/advanced", searchHandler.AdvancedSearchChats)
 			public.GET("/rankings/favorites", searchHandler.GetRankingByFavorites)
 			public.GET("/rankings/shares", searchHandler.GetRankingByShares)
 			public.GET("/rankings/comments", searchHandler.GetRankingByComments)
@@ -95,6 +97,14 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 				user.DELETE("/favorites/users/:target_user_id", userHandler.RemoveFavoriteUser)
 				// Delete own account
 				user.DELETE("/account", userHandler.DeleteAccount)
+
+				// Saved search settings - specific routes MUST come before parameterized routes
+				user.POST("/search-settings", savedSearchHandler.CreateSavedSearch)
+				user.GET("/search-settings/default", savedSearchHandler.GetDefaultSearch)
+				user.GET("/search-settings", savedSearchHandler.ListSavedSearches)
+				user.GET("/search-settings/:id", savedSearchHandler.GetSavedSearch)
+				user.PUT("/search-settings/:id", savedSearchHandler.UpdateSavedSearch)
+				user.DELETE("/search-settings/:id", savedSearchHandler.DeleteSavedSearch)
 			}
 
 			// Chat management

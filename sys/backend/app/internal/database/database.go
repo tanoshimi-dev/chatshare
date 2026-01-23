@@ -38,5 +38,6 @@ func RunMigrations(db *gorm.DB) error {
 		&Comment{},
 		&View{},
 		&Share{},
+		&SavedSearchSetting{},
 	)
 }

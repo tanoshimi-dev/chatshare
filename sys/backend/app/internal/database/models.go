@@ -194,3 +194,24 @@ type Share struct {
 	Chat      Chat      `gorm:"foreignKey:ChatID" json:"chat,omitempty"`
 	User      User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
 }
+
+// SavedSearchSetting represents a user's saved search configuration
+type SavedSearchSetting struct {
+	ID          uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID      uuid.UUID      `gorm:"type:uuid;not null;index" json:"user_id"`
+	Name        string         `gorm:"size:100;not null" json:"name"` // User-defined name for the search
+	CategoryID  *uuid.UUID     `gorm:"type:uuid" json:"category_id,omitempty"`
+	ChatType    string         `gorm:"size:50" json:"chat_type,omitempty"` // chatgpt, claude, copilot, gemini
+	DateFrom    *time.Time     `json:"date_from,omitempty"`
+	DateTo      *time.Time     `json:"date_to,omitempty"`
+	SortBy      string         `gorm:"size:50;default:'created_at'" json:"sort_by"`
+	SortOrder   string         `gorm:"size:10;default:'desc'" json:"sort_order"` // asc, desc
+	IsDefault   bool           `gorm:"default:false" json:"is_default"` // Mark as default search
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+
+	// Relationships
+	User        User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Category    *Category      `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+}
