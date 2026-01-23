@@ -303,6 +303,57 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 		query = query.Where("title ILIKE ? OR description ILIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 
+	// Additional filters
+	// if categoryID := c.Query("category_id"); categoryID != "" {
+	// 	dbQuery = dbQuery.Where("category_id = ?", categoryID)
+	// }
+
+	// if userID := c.Query("user_id"); userID != "" {
+	// 	dbQuery = dbQuery.Where("user_id = ?", userID)
+	// }
+
+	// Filter by Category (カテゴリ)
+	// if categoryID := c.Query("category_id"); categoryID != "" {
+	// 	if _, err := uuid.Parse(categoryID); err == nil {
+	// 		query = query.Where("category_id = ?", categoryID)
+	// 	}
+	// }
+
+	// Filter by Chat Type (チャットタイプ)
+	if chatType := c.Query("chat_type"); chatType != "" {
+		validTypes := map[string]bool{
+			"chatgpt": true,
+			"claude":  true,
+			"copilot": true,
+			"gemini":  true,
+		}
+		if validTypes[chatType] {
+			query = query.Where("chat_type = ?", chatType)
+		}
+	}
+
+	// Filter by Date Range (日付範囲)
+	if dateFrom := c.Query("date_from"); dateFrom != "" {
+		if t, err := time.Parse("2006-01-02", dateFrom); err == nil {
+			query = query.Where("created_at >= ?", t)
+		}
+	}
+	if dateTo := c.Query("date_to"); dateTo != "" {
+		if t, err := time.Parse("2006-01-02", dateTo); err == nil {
+			// Add 1 day to include the entire day
+			t = t.Add(24 * time.Hour)
+			query = query.Where("created_at < ?", t)
+		}
+	}
+
+	// Filter by User (ユーザー)
+	if userID := c.Query("user_id"); userID != "" {
+		if _, err := uuid.Parse(userID); err == nil {
+			query = query.Where("user_id = ?", userID)
+		}
+	}
+
+
 	// Filter by favorites (requires authentication)
 	if favorite := c.Query("favorite"); favorite == "true" {
 		userID, exists := c.Get("user_id")

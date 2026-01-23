@@ -112,91 +112,107 @@ export interface SearchFilters {
 /**
  * Fetch chats with advanced search filters
  */
-export const searchChatsAdvanced = async (
-  filters: SearchFilters,
-  page: number = 1,
-  limit: number = 20
-): Promise<Chat[]> => {
-  try {
-    const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('page_size', limit.toString());
+// export const searchChatsAdvanced = async (
+//   filters: SearchFilters,
+//   page: number = 1,
+//   limit: number = 20
+// ): Promise<Chat[]> => {
+//   try {
+//     const params = new URLSearchParams();
+//     params.append('page', page.toString());
+//     params.append('page_size', limit.toString());
     
-    if (filters.categoryId) params.append('category_id', filters.categoryId);
-    if (filters.chatType) params.append('chat_type', filters.chatType);
-    if (filters.dateFrom) params.append('date_from', filters.dateFrom);
-    if (filters.dateTo) params.append('date_to', filters.dateTo);
-    if (filters.userId) params.append('user_id', filters.userId);
-    if (filters.query) params.append('q', filters.query);
-    if (filters.sortBy) params.append('sort_by', filters.sortBy);
-    if (filters.sortOrder) params.append('sort_order', filters.sortOrder);
+//     if (filters.categoryId) params.append('category_id', filters.categoryId);
+//     if (filters.chatType) params.append('chat_type', filters.chatType);
+//     if (filters.dateFrom) params.append('date_from', filters.dateFrom);
+//     if (filters.dateTo) params.append('date_to', filters.dateTo);
+//     if (filters.userId) params.append('user_id', filters.userId);
+//     if (filters.query) params.append('q', filters.query);
+//     if (filters.sortBy) params.append('sort_by', filters.sortBy);
+//     if (filters.sortOrder) params.append('sort_order', filters.sortOrder);
 
-    console.log('Advanced search:', `${API_BASE_URL}/search/advanced?${params.toString()}`);
+//     console.log('Advanced search:', `${API_BASE_URL}/search/advanced?${params.toString()}`);
     
-    const token = await AsyncStorage.getItem('auth_token');
-    const headers: Record<string, string> = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    };
+//     const token = await AsyncStorage.getItem('auth_token');
+//     const headers: Record<string, string> = {
+//       'Accept': 'application/json',
+//       'Content-Type': 'application/json',
+//     };
     
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+//     if (token) {
+//       headers['Authorization'] = `Bearer ${token}`;
+//     }
     
-    // Add timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+//     // Add timeout to prevent hanging
+//     const controller = new AbortController();
+//     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    const response = await fetch(
-      `${API_BASE_URL}/search/advanced?${params.toString()}`,
-      {
-        method: 'GET',
-        headers,
-        signal: controller.signal,
-      }
-    );
+//     const response = await fetch(
+//       `${API_BASE_URL}/search/advanced?${params.toString()}`,
+//       {
+//         method: 'GET',
+//         headers,
+//         signal: controller.signal,
+//       }
+//     );
 
-    clearTimeout(timeoutId);
+//     clearTimeout(timeoutId);
 
-    console.log('Response status:', response.status);
-    console.log('Response OK:', response.ok);
+//     console.log('Response status:', response.status);
+//     console.log('Response OK:', response.ok);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Search error response:', errorText);
-      throw new Error(`Failed to search chats: ${response.status}`);
-    }
+//     if (!response.ok) {
+//       const errorText = await response.text();
+//       console.error('Search error response:', errorText);
+//       throw new Error(`Failed to search chats: ${response.status}`);
+//     }
 
-    const data: ChatListResponse = await response.json();
-    //console.log('Response data:', JSON.stringify(data, null, 2));
+//     const data: ChatListResponse = await response.json();
+//     //console.log('Response data:', JSON.stringify(data, null, 2));
 
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to search chats');
-    }
+//     if (!data.success) {
+//       throw new Error(data.message || 'Failed to search chats');
+//     }
 
-    console.log('Returning', data.data?.length || 0, 'chats from advanced search');
-    return data.data || [];
-  } catch (error) {
-    console.error('Error in advanced search:', error);
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Search request timed out. Please try again.');
-      }
-      throw error;
-    }
-    throw new Error('An unknown error occurred during search');
-  }
-};
+//     console.log('Returning', data.data?.length || 0, 'chats from advanced search');
+//     return data.data || [];
+//   } catch (error) {
+//     console.error('Error in advanced search:', error);
+//     if (error instanceof Error) {
+//       if (error.name === 'AbortError') {
+//         throw new Error('Search request timed out. Please try again.');
+//       }
+//       throw error;
+//     }
+//     throw new Error('An unknown error occurred during search');
+//   }
+// };
 
 /**
  * Fetch public chats (timeline)
  */
 export const fetchPublicChats = async (
+  filters: SearchFilters | null = null,
   page: number = 1,
   limit: number = 20
 ): Promise<Chat[]> => {
   try {
-    console.log('Fetching from:', `${API_BASE_URL}/chats?page=${page}&page_size=${limit}`);
+
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('page_size', limit.toString());
+    
+    if (filters?.categoryId) params.append('category_id', filters.categoryId);
+    if (filters?.chatType) params.append('chat_type', filters.chatType);
+    if (filters?.dateFrom) params.append('date_from', filters.dateFrom);
+    if (filters?.dateTo) params.append('date_to', filters.dateTo);
+    if (filters?.userId) params.append('user_id', filters.userId);
+    if (filters?.query) params.append('q', filters.query);
+    if (filters?.sortBy) params.append('sort_by', filters.sortBy);
+    if (filters?.sortOrder) params.append('sort_order', filters.sortOrder);
+
+    //console.log('Advanced search:', `${API_BASE_URL}/search/advanced?${params.toString()}`);    
+    console.log('Fetching from:', `${API_BASE_URL}/chats?${params.toString()}`);
     
     // Include auth token if available to get favorite status
     const token = await AsyncStorage.getItem('auth_token');
@@ -210,7 +226,7 @@ export const fetchPublicChats = async (
     }
     
     const response = await fetch(
-      `${API_BASE_URL}/chats?page=${page}&page_size=${limit}`,
+      `${API_BASE_URL}/chats?${params.toString()}`,
       {
         method: 'GET',
         headers,

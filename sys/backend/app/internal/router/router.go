@@ -70,11 +70,11 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 			// Search and rankings
 			public.GET("/search", searchHandler.SearchChats)
 			public.GET("/search/advanced", searchHandler.AdvancedSearchChats)
-			public.GET("/rankings/favorites", searchHandler.GetRankingByFavorites)
-			public.GET("/rankings/shares", searchHandler.GetRankingByShares)
-			public.GET("/rankings/comments", searchHandler.GetRankingByComments)
-			public.GET("/rankings/views", searchHandler.GetRankingByViews)
-			public.GET("/keywords/popular", searchHandler.GetPopularKeywords)
+			// public.GET("/rankings/favorites", searchHandler.GetRankingByFavorites)
+			// public.GET("/rankings/shares", searchHandler.GetRankingByShares)
+			// public.GET("/rankings/comments", searchHandler.GetRankingByComments)
+			// public.GET("/rankings/views", searchHandler.GetRankingByViews)
+			// public.GET("/keywords/popular", searchHandler.GetPopularKeywords)
 
 			// Users (public profiles)
 			public.GET("/users/:id", userHandler.GetUserByID)

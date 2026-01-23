@@ -234,15 +234,19 @@ const TimelineScreen = ({ navigation }: Props) => {
       console.log('Active filters:', JSON.stringify(activeFilters, null, 2));
       
       let data;
-      if (activeFilters && (activeFilters.categoryId || activeFilters.chatType || activeFilters.dateFrom || activeFilters.dateTo || activeFilters.userId)) {
-        console.log(`Searching chats with filters (page ${pageNum}):`, activeFilters);
-        data = await searchChatsAdvanced(activeFilters, pageNum, 10);
-        console.log('Search results:', data?.length || 0, 'chats');
-      } else {
-        console.log(`Fetching chats from API (page ${pageNum})...`);
-        data = await fetchPublicChats(pageNum, 10);
-        console.log('Fetch results:', data?.length || 0, 'chats');
-      }
+      // if (activeFilters && (activeFilters.categoryId || activeFilters.chatType || activeFilters.dateFrom || activeFilters.dateTo || activeFilters.userId)) {
+      //   console.log(`Searching chats with filters (page ${pageNum}):`, activeFilters);
+      //   data = await searchChatsAdvanced(activeFilters, pageNum, 10);
+      //   console.log('Search results:', data?.length || 0, 'chats');
+      // } else {
+      //   console.log(`Fetching chats from API (page ${pageNum})...`);
+      //   data = await fetchPublicChats(activeFilters ?? null, pageNum, 10);
+      //   console.log('Fetch results:', data?.length || 0, 'chats');
+      // }
+      console.log(`Fetching chats from API (page ${pageNum})...`);
+      data = await fetchPublicChats(activeFilters ?? null, pageNum, 10);
+      console.log('Fetch results:', data?.length || 0, 'chats');
+
       console.log('Chats loaded successfully:', data?.length || 0);
       console.log('First chat:', data?.[0] ? data[0].title : 'No chats');
       console.log('===================');

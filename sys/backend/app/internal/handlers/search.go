@@ -86,77 +86,77 @@ func (h *SearchHandler) GetRankingByFavorites(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, chats)
 }
 
-func (h *SearchHandler) GetRankingByShares(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if limit > h.cfg.MaxPageSize {
-		limit = h.cfg.MaxPageSize
-	}
+// func (h *SearchHandler) GetRankingByShares(c *gin.Context) {
+// 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+// 	if limit > h.cfg.MaxPageSize {
+// 		limit = h.cfg.MaxPageSize
+// 	}
 
-	var chats []database.Chat
-	if err := h.db.Preload("User").Preload("Category").
-		Where("is_public = ? AND status = ?", true, "active").
-		Order("share_count DESC").
-		Limit(limit).
-		Find(&chats).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
-		return
-	}
+// 	var chats []database.Chat
+// 	if err := h.db.Preload("User").Preload("Category").
+// 		Where("is_public = ? AND status = ?", true, "active").
+// 		Order("share_count DESC").
+// 		Limit(limit).
+// 		Find(&chats).Error; err != nil {
+// 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
+// 		return
+// 	}
 
-	utils.SuccessResponse(c, http.StatusOK, chats)
-}
+// 	utils.SuccessResponse(c, http.StatusOK, chats)
+// }
 
-func (h *SearchHandler) GetRankingByComments(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if limit > h.cfg.MaxPageSize {
-		limit = h.cfg.MaxPageSize
-	}
+// func (h *SearchHandler) GetRankingByComments(c *gin.Context) {
+// 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+// 	if limit > h.cfg.MaxPageSize {
+// 		limit = h.cfg.MaxPageSize
+// 	}
 
-	var chats []database.Chat
-	if err := h.db.Preload("User").Preload("Category").
-		Where("is_public = ? AND status = ?", true, "active").
-		Order("comment_count DESC").
-		Limit(limit).
-		Find(&chats).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
-		return
-	}
+// 	var chats []database.Chat
+// 	if err := h.db.Preload("User").Preload("Category").
+// 		Where("is_public = ? AND status = ?", true, "active").
+// 		Order("comment_count DESC").
+// 		Limit(limit).
+// 		Find(&chats).Error; err != nil {
+// 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
+// 		return
+// 	}
 
-	utils.SuccessResponse(c, http.StatusOK, chats)
-}
+// 	utils.SuccessResponse(c, http.StatusOK, chats)
+// }
 
-func (h *SearchHandler) GetRankingByViews(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if limit > h.cfg.MaxPageSize {
-		limit = h.cfg.MaxPageSize
-	}
+// func (h *SearchHandler) GetRankingByViews(c *gin.Context) {
+// 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+// 	if limit > h.cfg.MaxPageSize {
+// 		limit = h.cfg.MaxPageSize
+// 	}
 
-	var chats []database.Chat
-	if err := h.db.Preload("User").Preload("Category").
-		Where("is_public = ? AND status = ?", true, "active").
-		Order("view_count DESC").
-		Limit(limit).
-		Find(&chats).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
-		return
-	}
+// 	var chats []database.Chat
+// 	if err := h.db.Preload("User").Preload("Category").
+// 		Where("is_public = ? AND status = ?", true, "active").
+// 		Order("view_count DESC").
+// 		Limit(limit).
+// 		Find(&chats).Error; err != nil {
+// 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch ranking")
+// 		return
+// 	}
 
-	utils.SuccessResponse(c, http.StatusOK, chats)
-}
+// 	utils.SuccessResponse(c, http.StatusOK, chats)
+// }
 
-func (h *SearchHandler) GetPopularKeywords(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
-	if limit > 100 {
-		limit = 100
-	}
+// func (h *SearchHandler) GetPopularKeywords(c *gin.Context) {
+// 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+// 	if limit > 100 {
+// 		limit = 100
+// 	}
 
-	var keywords []database.Keyword
-	if err := h.db.Order("usage_count DESC").Limit(limit).Find(&keywords).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch keywords")
-		return
-	}
+// 	var keywords []database.Keyword
+// 	if err := h.db.Order("usage_count DESC").Limit(limit).Find(&keywords).Error; err != nil {
+// 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch keywords")
+// 		return
+// 	}
 
-	utils.SuccessResponse(c, http.StatusOK, keywords)
-}
+// 	utils.SuccessResponse(c, http.StatusOK, keywords)
+// }
 
 // AdvancedSearchChats - Advanced search with multiple filters
 // Supports: category, chat_type, date range (date_from, date_to), user_id
