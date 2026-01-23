@@ -144,15 +144,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             
             // Close WebView if it's still open
             console.log('🔙 Attempting to close LineLoginWebView...');
-            // try {
-            //   if (navigation.canGoBack && navigation.canGoBack()) {
-            //     navigation.goBack();
-            //   } else {
-            //     console.log('ℹ️ No screen to go back to; skipping goBack()');
-            //   }
-            // } catch (e) {
-            //   console.log('⚠️ navigation.goBack() skipped or failed:', e);
-            // }
+            try {
+              if (navigation.canGoBack && navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                console.log('ℹ️ No screen to go back to; skipping goBack()');
+              }
+            } catch (e) {
+              console.log('⚠️ navigation.goBack() skipped or failed:', e);
+            }
             
             // Small delay to ensure navigation completes
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -228,16 +228,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             console.log('✅ refreshUser completed after return');
             
             // Close WebView if it's still open
-            // console.log('🔙 Attempting to close LineLoginWebView after focus...');
-            // try {
-            //   if (navigation.canGoBack && navigation.canGoBack()) {
-            //     navigation.goBack();
-            //   } else {
-            //     console.log('ℹ️ No screen to go back to after focus; skipping goBack()');
-            //   }
-            // } catch (e) {
-            //   console.log('⚠️ Navigation goBack failed (may already be on LoginScreen):', e);
-            // }
+            console.log('🔙 Attempting to close LineLoginWebView after focus...');
+            try {
+              if (navigation.canGoBack && navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                console.log('ℹ️ No screen to go back to after focus; skipping goBack()');
+              }
+            } catch (e) {
+              console.log('⚠️ Navigation goBack failed (may already be on LoginScreen):', e);
+            }
             
             // Small delay to ensure navigation completes
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -457,7 +457,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             style={styles.debugButton}
             onPress={handleNetworkDebug}
           >
-            <Text style={styles.debugButtonText}>🔍 Network Debug ver 17</Text>
+            <Text style={styles.debugButtonText}>🔍 Network Debug ver 18</Text>
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
