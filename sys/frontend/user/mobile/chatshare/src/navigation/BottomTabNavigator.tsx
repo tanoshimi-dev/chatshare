@@ -7,7 +7,7 @@ import TimelineScreen from '../screens/TimelineScreen';
 import SearchScreen from '../screens/SearchScreen';
 import ShareScreen from '../screens/ShareScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
-import FavoriteScreen from '../screens/FavoriteScreen';
+import FavoriteUsersScreen from '../screens/FavoriteUsersScreen';
 import { useAuth } from '../contexts/AuthContext';
 
 const Tab = createBottomTabNavigator();
@@ -86,7 +86,7 @@ const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name="Favorite"
-        component={FavoriteScreen}
+        component={FavoriteUsersScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="favorite" size={size} color={color} />

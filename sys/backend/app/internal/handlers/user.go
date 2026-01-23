@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/chatshare/backend/internal/config"
 	"github.com/chatshare/backend/internal/database"
@@ -87,13 +88,94 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 func (h *UserHandler) ListFavoriteUsers(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
-	var favorites []database.FavoriteUser
-	if err := h.db.Preload("TargetUser").Where("user_id = ?", userID).Find(&favorites).Error; err != nil {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", strconv.Itoa(h.cfg.DefaultPageSize)))
+	if pageSize > h.cfg.MaxPageSize {
+		pageSize = h.cfg.MaxPageSize
+	}
+
+	// Count total favorite users
+	var total int64
+	if err := h.db.Model(&database.FavoriteUser{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to count favorite users")
+		return
+	}
+
+	// Fetch favorite relations in order (most recent favorites first)
+	offset := (page - 1) * pageSize
+	var favs []database.FavoriteUser
+	if err := h.db.Where("user_id = ?", userID).Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&favs).Error; err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch favorite users")
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, favorites)
+	// Collect unique target user IDs preserving order
+	targetIDs := make([]uuid.UUID, 0, len(favs))
+	seen := make(map[uuid.UUID]bool)
+	for _, f := range favs {
+		if !seen[f.TargetUserID] {
+			targetIDs = append(targetIDs, f.TargetUserID)
+			seen[f.TargetUserID] = true
+		}
+	}
+
+	// Fetch users for those IDs
+	var users []database.User
+	if len(targetIDs) > 0 {
+		if err := h.db.Where("id IN ?", targetIDs).Find(&users).Error; err != nil {
+			utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch users")
+			return
+		}
+	}
+
+	// Map user id -> user
+	userMap := make(map[uuid.UUID]database.User)
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+
+	// Find a representative chat id per user (latest chat)
+	repChatMap := make(map[uuid.UUID]uuid.UUID)
+	if len(targetIDs) > 0 {
+		var chats []struct {
+			UserID uuid.UUID `gorm:"column:user_id"`
+			ID     uuid.UUID `gorm:"column:id"`
+		}
+		// Select latest chat id per user ordered by created_at desc
+		if err := h.db.Model(&database.Chat{}).
+			Select("user_id, id").
+			Where("user_id IN ?", targetIDs).
+			Order("created_at DESC").
+			Find(&chats).Error; err == nil {
+			for _, ch := range chats {
+				if _, ok := repChatMap[ch.UserID]; !ok {
+					repChatMap[ch.UserID] = ch.ID
+				}
+			}
+		}
+	}
+
+	// Build response preserving order
+	resp := make([]map[string]interface{}, 0, len(targetIDs))
+	for _, tid := range targetIDs {
+		u, ok := userMap[tid]
+		if !ok {
+			continue
+		}
+		item := map[string]interface{}{
+			"id":              u.ID,
+			"name":            u.Name,
+			"avatar":          u.Avatar,
+			"provider":        u.Provider,
+			"favorited_count": u.FavoritedCount,
+		}
+		if rep, ok := repChatMap[tid]; ok {
+			item["rep_chat_id"] = rep
+		}
+		resp = append(resp, item)
+	}
+
+	utils.PaginatedSuccessResponse(c, http.StatusOK, resp, page, pageSize, total)
 }
 
 func (h *UserHandler) AddFavoriteUser(c *gin.Context) {
@@ -131,12 +213,17 @@ func (h *UserHandler) AddFavoriteUser(c *gin.Context) {
 		return
 	}
 
+	// Update favorited_count on target user
+	var count int64
+	h.db.Model(&database.FavoriteUser{}).Where("target_user_id = ?", targetUserID).Count(&count)
+	h.db.Model(&database.User{}).Where("id = ?", targetUserID).Updates(map[string]interface{}{"favorited_count": count})
+
 	utils.MessageResponse(c, http.StatusCreated, "User favorited successfully")
 }
 
 func (h *UserHandler) RemoveFavoriteUser(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	targetUserIDStr := c.Param("id")
+	targetUserIDStr := c.Param("target_user_id")
 
 	targetUserID, err := uuid.Parse(targetUserIDStr)
 	if err != nil {
@@ -156,6 +243,11 @@ func (h *UserHandler) RemoveFavoriteUser(c *gin.Context) {
 	}
 
 	utils.MessageResponse(c, http.StatusOK, "Favorite removed successfully")
+
+	// Update favorited_count on target user
+	var count int64
+	h.db.Model(&database.FavoriteUser{}).Where("target_user_id = ?", targetUserID).Count(&count)
+	h.db.Model(&database.User{}).Where("id = ?", targetUserID).Updates(map[string]interface{}{"favorited_count": count})
 }
 
 func (h *UserHandler) DeleteAccount(c *gin.Context) {

@@ -22,10 +22,12 @@ type User struct {
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	FavoritedCount  int            `gorm:"default:0" json:"favorited_count"`
 
 	// Relationships
 	Chats           []Chat         `gorm:"foreignKey:UserID" json:"chats,omitempty"`
 	Favorites       []Favorite     `gorm:"foreignKey:UserID" json:"favorites,omitempty"`
+	Goods           []Good         `gorm:"foreignKey:UserID" json:"goods,omitempty"`
 	FavoritedBy     []FavoriteUser `gorm:"foreignKey:TargetUserID" json:"favorited_by,omitempty"`
 	Comments        []Comment      `gorm:"foreignKey:UserID" json:"comments,omitempty"`
 	Views           []View         `gorm:"foreignKey:UserID" json:"views,omitempty"`
@@ -66,6 +68,7 @@ type Chat struct {
 	ViewCount       int            `gorm:"default:0" json:"view_count"`
 	ShareCount      int            `gorm:"default:0" json:"share_count"`
 	FavoriteCount   int            `gorm:"default:0" json:"favorite_count"`
+	GoodCount       int            `gorm:"default:0" json:"good_count"`
 	CommentCount    int            `gorm:"default:0" json:"comment_count"`
 	LastViewedAt    *time.Time     `json:"last_viewed_at"`
 	CreatedAt       time.Time      `json:"created_at"`
@@ -74,12 +77,14 @@ type Chat struct {
 
 	// Non-persisted fields
 	IsFavorited     bool           `gorm:"-" json:"is_favorited,omitempty"`
-
+	IsGooded        bool           `gorm:"-" json:"is_gooded,omitempty"`
+	
 	// Relationships
 	User            User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Category        Category       `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 	Keywords        []ChatKeyword  `gorm:"foreignKey:ChatID" json:"keywords,omitempty"`
 	Favorites       []Favorite     `gorm:"foreignKey:ChatID" json:"favorites,omitempty"`
+	Goods           []Good         `gorm:"foreignKey:ChatID" json:"goods,omitempty"`
 	Comments        []Comment      `gorm:"foreignKey:ChatID" json:"comments,omitempty"`
 	Views           []View         `gorm:"foreignKey:ChatID" json:"views,omitempty"`
 	Shares          []Share        `gorm:"foreignKey:ChatID" json:"shares,omitempty"`
@@ -112,6 +117,19 @@ type ChatKeyword struct {
 
 // Favorite represents a user favoriting a chat
 type Favorite struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	ChatID    uuid.UUID `gorm:"type:uuid;not null;index" json:"chat_id"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// Relationships
+	User      User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Chat      Chat      `gorm:"foreignKey:ChatID" json:"chat,omitempty"`
+}
+
+
+// Good represents a user gooding a chat
+type Good struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
 	ChatID    uuid.UUID `gorm:"type:uuid;not null;index" json:"chat_id"`

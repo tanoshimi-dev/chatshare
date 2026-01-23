@@ -18,7 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchPublicChats, Chat, addFavorite, removeFavorite } from '../services/chatService';
+import { fetchPublicChats, Chat, addFavoriteUser, removeFavoriteUser, addGood, removeGood } from '../services/chatService';
 import EditChatModal from '../components/EditChatModal';
 
 type DrawerParamList = {
@@ -67,144 +67,145 @@ const TimelineScreen = ({ navigation }: Props) => {
       
       // Fallback to mock data if API fails
       console.log('Using mock data as fallback');
-      const mockChats: Chat[] = [
-        {
-          id: '1',
-          title: 'Goの特徴、ポインターレシーバーなど',
-          description: 'Goの特徴、ポインターレシーバーなど',
-          public_link: 'https://chat.openai.com/share/example1',
-          user_id: 'user1',
-          chat_type: 'chatgpt',
-          is_public: true,
-          is_link_valid: true,
-          status: 'active',
-          favorite_count: 122,
-          view_count: 450,
-          share_count: 10,
-          created_at: '2026-01-01T11:11:00Z',
-          updated_at: '2026-01-01T11:11:00Z',
-          user: {
-            id: 'user1',
-            name: 'mitakik25',
-            email: 'mitakik25@example.com',
-            provider: 'google',
-          },
-          category: {
-            id: 'cat1',
-            name: '開発',
-            slug: 'development',
-          },
-        },
-        {
-          id: '2',
-          title: 'React Nativeでの認証フロー実装',
-          description: 'React Nativeでの認証フロー実装について詳しく解説',
-          public_link: 'https://claude.ai/share/example2',
-          user_id: 'user1',
-          chat_type: 'claude',
-          is_public: true,
-          is_link_valid: true,
-          status: 'active',
-          favorite_count: 98,
-          view_count: 320,
-          share_count: 5,
-          created_at: '2026-01-01T10:30:00Z',
-          updated_at: '2026-01-01T10:30:00Z',
-          user: {
-            id: 'user1',
-            name: 'mitakik25',
-            email: 'mitakik25@example.com',
-            provider: 'google',
-          },
-          category: {
-            id: 'cat1',
-            name: '開発',
-            slug: 'development',
-          },
-        },
-        {
-          id: '3',
-          title: 'TypeScriptのジェネリクスについて',
-          description: 'TypeScriptのジェネリクスについて',
-          public_link: 'https://copilot.microsoft.com/share/example3',
-          user_id: 'user1',
-          chat_type: 'copilot',
-          is_public: true,
-          is_link_valid: true,
-          status: 'active',
-          favorite_count: 156,
-          view_count: 580,
-          share_count: 8,
-          created_at: '2026-01-01T09:15:00Z',
-          updated_at: '2026-01-01T09:15:00Z',
-          user: {
-            id: 'user1',
-            name: 'mitakik25',
-            email: 'mitakik25@example.com',
-            provider: 'line',
-          },
-          category: {
-            id: 'cat1',
-            name: '開発',
-            slug: 'development',
-          },
-        },
-        {
-          id: '4',
-          title: 'モバイルUIのベストプラクティス',
-          description: 'モバイルUIのベストプラクティス',
-          public_link: 'https://chat.openai.com/share/example4',
-          user_id: 'user2',
-          chat_type: 'chatgpt',
-          is_public: true,
-          is_link_valid: true,
-          status: 'active',
-          favorite_count: 203,
-          view_count: 750,
-          share_count: 12,
-          created_at: '2026-01-01T08:45:00Z',
-          updated_at: '2026-01-01T08:45:00Z',
-          user: {
-            id: 'user2',
-            name: 'designer_user',
-            email: 'designer@example.com',
-          },
-          category: {
-            id: 'cat2',
-            name: 'デザイン',
-            slug: 'design',
-          },
-        },
-        {
-          id: '5',
-          title: 'Docker Composeでの環境構築手順',
-          description: 'Docker Composeでの環境構築手順',
-          public_link: 'https://claude.ai/share/example5',
-          user_id: 'user1',
-          chat_type: 'claude',
-          is_public: true,
-          is_link_valid: true,
-          status: 'active',
-          favorite_count: 87,
-          view_count: 290,
-          share_count: 4,
-          created_at: '2025-12-31T22:30:00Z',
-          updated_at: '2025-12-31T22:30:00Z',
-          user: {
-            id: 'user1',
-            name: 'mitakik25',
-            email: 'mitakik25@example.com',
-            provider: 'google',
-          },
-          category: {
-            id: 'cat1',
-            name: '開発',
-            slug: 'development',
-          },
-        },
-      ];
+      // const mockChats: Chat[] = [
+      //   {
+      //     id: '1',
+      //     title: 'Goの特徴、ポインターレシーバーなど',
+      //     description: 'Goの特徴、ポインターレシーバーなど',
+      //     public_link: 'https://chat.openai.com/share/example1',
+      //     user_id: 'user1',
+      //     chat_type: 'chatgpt',
+      //     is_public: true,
+      //     is_link_valid: true,
+      //     status: 'active',
+      //     favorite_count: 122,
+      //     view_count: 450,
+      //     share_count: 10,
+      //     created_at: '2026-01-01T11:11:00Z',
+      //     updated_at: '2026-01-01T11:11:00Z',
+      //     user: {
+      //       id: 'user1',
+      //       name: 'mitakik25',
+      //       email: 'mitakik25@example.com',
+      //       provider: 'google',
+      //     },
+      //     category: {
+      //       id: 'cat1',
+      //       name: '開発',
+      //       slug: 'development',
+      //     },
+      //   },
+      //   {
+      //     id: '2',
+      //     title: 'React Nativeでの認証フロー実装',
+      //     description: 'React Nativeでの認証フロー実装について詳しく解説',
+      //     public_link: 'https://claude.ai/share/example2',
+      //     user_id: 'user1',
+      //     chat_type: 'claude',
+      //     is_public: true,
+      //     is_link_valid: true,
+      //     status: 'active',
+      //     favorite_count: 98,
+      //     view_count: 320,
+      //     share_count: 5,
+      //     created_at: '2026-01-01T10:30:00Z',
+      //     updated_at: '2026-01-01T10:30:00Z',
+      //     user: {
+      //       id: 'user1',
+      //       name: 'mitakik25',
+      //       email: 'mitakik25@example.com',
+      //       provider: 'google',
+      //     },
+      //     category: {
+      //       id: 'cat1',
+      //       name: '開発',
+      //       slug: 'development',
+      //     },
+      //   },
+      //   {
+      //     id: '3',
+      //     title: 'TypeScriptのジェネリクスについて',
+      //     description: 'TypeScriptのジェネリクスについて',
+      //     public_link: 'https://copilot.microsoft.com/share/example3',
+      //     user_id: 'user1',
+      //     chat_type: 'copilot',
+      //     is_public: true,
+      //     is_link_valid: true,
+      //     status: 'active',
+      //     favorite_count: 156,
+      //     view_count: 580,
+      //     share_count: 8,
+      //     created_at: '2026-01-01T09:15:00Z',
+      //     updated_at: '2026-01-01T09:15:00Z',
+      //     user: {
+      //       id: 'user1',
+      //       name: 'mitakik25',
+      //       email: 'mitakik25@example.com',
+      //       provider: 'line',
+      //     },
+      //     category: {
+      //       id: 'cat1',
+      //       name: '開発',
+      //       slug: 'development',
+      //     },
+      //   },
+      //   {
+      //     id: '4',
+      //     title: 'モバイルUIのベストプラクティス',
+      //     description: 'モバイルUIのベストプラクティス',
+      //     public_link: 'https://chat.openai.com/share/example4',
+      //     user_id: 'user2',
+      //     chat_type: 'chatgpt',
+      //     is_public: true,
+      //     is_link_valid: true,
+      //     status: 'active',
+      //     favorite_count: 203,
+      //     view_count: 750,
+      //     share_count: 12,
+      //     created_at: '2026-01-01T08:45:00Z',
+      //     updated_at: '2026-01-01T08:45:00Z',
+      //     user: {
+      //       id: 'user2',
+      //       name: 'designer_user',
+      //       email: 'designer@example.com',
+      //     },
+      //     category: {
+      //       id: 'cat2',
+      //       name: 'デザイン',
+      //       slug: 'design',
+      //     },
+      //   },
+      //   {
+      //     id: '5',
+      //     title: 'Docker Composeでの環境構築手順',
+      //     description: 'Docker Composeでの環境構築手順',
+      //     public_link: 'https://claude.ai/share/example5',
+      //     user_id: 'user1',
+      //     chat_type: 'claude',
+      //     is_public: true,
+      //     is_link_valid: true,
+      //     status: 'active',
+      //     favorite_count: 87,
+      //     view_count: 290,
+      //     share_count: 4,
+      //     created_at: '2025-12-31T22:30:00Z',
+      //     updated_at: '2025-12-31T22:30:00Z',
+      //     user: {
+      //       id: 'user1',
+      //       name: 'mitakik25',
+      //       email: 'mitakik25@example.com',
+      //       provider: 'google',
+      //     },
+      //     category: {
+      //       id: 'cat1',
+      //       name: '開発',
+      //       slug: 'development',
+      //     },
+      //   },
+      // ];
+      // setChats(mockChats);
       
-      setChats(mockChats);
+      setChats([]);
       setError(null); // Clear error since we're showing mock data
     } finally {
       setLoading(false);
@@ -254,9 +255,72 @@ const TimelineScreen = ({ navigation }: Props) => {
     return '#b90000'; // default to ChatGPT green
   };
 
-  const handleFavoriteToggle = async (chat: Chat) => {
+  const handleGoodToggle = async (chat: Chat) => {
+    if (!isAuthenticatedUser) {
+      Alert.alert('Login Required', 'Please login to good chats');
+      return;
+    }
+
+    if (isOwnChat(chat)) {
+      Alert.alert('Not Allowed', 'You cannot good your own chat');
+      return;
+    }
+
+    try {
+      const isGooded = chat.is_gooded;
+      
+      // Optimistic update - only toggle is_gooded, not good_count
+      setChats(prevChats =>
+        prevChats.map(c =>
+          c.id === chat.id ? { ...c, is_gooded: !isGooded } : c
+        )
+      );
+
+      if (isGooded) {
+        await removeGood(chat.id);
+      } else {
+        await addGood(chat.id);
+      }
+      
+      // Reload chats to get updated good_count from backend
+      loadChats();
+    } catch (error: any) {
+      // Revert on error
+      setChats(prevChats =>
+        prevChats.map(c =>
+          c.id === chat.id ? { ...c, is_gooded: chat.is_gooded } : c
+        )
+      );
+      
+      // Handle 401 session expiration
+      if (error.status === 401) {
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please login again.',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await logout();
+                navigation.navigate('Timeline');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', error.message || 'Failed to update favorite');
+      }
+    }
+  };
+
+  const handleFavoriteUsersToggle = async (chat: Chat) => {
     if (!isAuthenticatedUser) {
       Alert.alert('Login Required', 'Please login to favorite chats');
+      return;
+    }
+
+    if (isOwnChat(chat)) {
+      Alert.alert('Not Allowed', 'You cannot favorite your own chat');
       return;
     }
 
@@ -271,9 +335,9 @@ const TimelineScreen = ({ navigation }: Props) => {
       );
 
       if (isFavorited) {
-        await removeFavorite(chat.id);
+        await removeFavoriteUser(chat.id);
       } else {
-        await addFavorite(chat.id);
+        await addFavoriteUser(chat.id);
       }
       
       // Reload chats to get updated good_count from backend
@@ -306,6 +370,7 @@ const TimelineScreen = ({ navigation }: Props) => {
       }
     }
   };
+
 
   const isOwnChat = (chat: Chat): boolean => {
     return user?.id === chat.user_id || user?.id === chat.user?.id;
@@ -399,19 +464,33 @@ const TimelineScreen = ({ navigation }: Props) => {
               {item.user?.name || item.user_name || 'Anonymous'}
             </Text>
           </View>
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
+              style={styles.likeContainer}
+              onPress={() => handleFavoriteUsersToggle(item)}>
+              <Icon
+                name={item.is_favorited ? 'favorite' : 'favorite-border'}
+                size={20}
+                color={item.is_favorited ? '#f67d70' : '#666'}
+              />
+              <Text style={styles.likeCount}>
+                {item.user?.favorited_count || 0}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.likeContainer}
-            onPress={() => handleFavoriteToggle(item)}>
+            onPress={() => handleGoodToggle(item)}>
             <Icon
-              name={item.is_favorited ? 'favorite' : 'favorite-border'}
+              name={item.is_gooded ? 'thumb-up' : 'thumb-up-off-alt'}
               size={20}
-              color={item.is_favorited ? '#E74C3C' : '#666'}
+              color={item.is_gooded ? '#f5c528' : '#666'}
             />
             <Text style={styles.likeCount}>
-              {item.favorite_count || 0}
+              {item.good_count || 0}
             </Text>
           </TouchableOpacity>
         </View>

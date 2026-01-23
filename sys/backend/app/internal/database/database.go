@@ -33,6 +33,7 @@ func RunMigrations(db *gorm.DB) error {
 		&Keyword{},
 		&ChatKeyword{},
 		&Favorite{},
+		&Good{},
 		&FavoriteUser{},
 		&Comment{},
 		&View{},

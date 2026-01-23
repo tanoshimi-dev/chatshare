@@ -92,7 +92,7 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 				user.PUT("/profile", userHandler.UpdateProfile)
 				user.GET("/favorites/users", userHandler.ListFavoriteUsers)
 				user.POST("/favorites/users/:id", userHandler.AddFavoriteUser)
-				user.DELETE("/favorites/users/:id", userHandler.RemoveFavoriteUser)
+				user.DELETE("/favorites/users/:target_user_id", userHandler.RemoveFavoriteUser)
 				// Delete own account
 				user.DELETE("/account", userHandler.DeleteAccount)
 			}
@@ -104,9 +104,12 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 				chats.PUT("/:id", chatHandler.UpdateChat)
 				chats.DELETE("/:id", chatHandler.DeleteChat)
 
+				// Goods
+				chats.POST("/:id/good", chatHandler.AddGood)
+				chats.DELETE("/:id/good", chatHandler.RemoveGood)
 				// Favorites
-				chats.POST("/:id/favorite", chatHandler.AddFavorite)
-				chats.DELETE("/:id/favorite", chatHandler.RemoveFavorite)
+				chats.POST("/:id/favorite_user", chatHandler.AddFavoriteUser)
+				chats.DELETE("/:id/favorite_user", chatHandler.RemoveFavoriteUser)
 
 				// Share tracking
 				chats.POST("/:id/share", chatHandler.RecordShare)

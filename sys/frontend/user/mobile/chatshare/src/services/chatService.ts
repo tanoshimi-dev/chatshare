@@ -45,8 +45,10 @@ export interface Chat {
   is_public: boolean;
   is_link_valid: boolean;
   is_favorited?: boolean;
+  is_gooded?: boolean;
   status: string;
   favorite_count?: number;
+  good_count?: number;
   view_count?: number;
   share_count?: number;
   comment_count?: number;
@@ -59,6 +61,7 @@ export interface Chat {
     email: string;
     avatar?: string;
     provider?: string;
+    favorited_count?: number;
   };
   category?: {
     id: string;
@@ -133,7 +136,7 @@ export const fetchPublicChats = async (
     }
 
     const data: ChatListResponse = await response.json();
-    //console.log('Response data:', JSON.stringify(data, null, 2));
+    console.log('Response data:', JSON.stringify(data, null, 2));
 
     if (!data.success) {
       throw new Error(data.message || 'Failed to fetch chats');
@@ -334,14 +337,14 @@ export const searchChats = async (
 /**
  * Add a chat to favorites
  */
-export const addFavorite = async (chatId: string): Promise<void> => {
+export const addFavoriteUser = async (chatId: string): Promise<void> => {
   try {
     const token = await AsyncStorage.getItem('auth_token');
     if (!token) {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/favorite`, {
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/favorite_user`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -368,14 +371,14 @@ export const addFavorite = async (chatId: string): Promise<void> => {
 /**
  * Remove a chat from favorites
  */
-export const removeFavorite = async (chatId: string): Promise<void> => {
+export const removeFavoriteUser = async (chatId: string): Promise<void> => {
   try {
     const token = await AsyncStorage.getItem('auth_token');
     if (!token) {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/favorite`, {
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/favorite_user`, {
       method: 'DELETE',
       headers: {
         'Accept': 'application/json',
@@ -445,6 +448,163 @@ export const fetchFavoriteChats = async (
     throw error;
   }
 };
+
+/**
+ * Fetch favorite users derived from favorite chats
+ * Returns an array of user summary objects with a representative chat id
+ */
+// export const fetchFavoriteUsers = async (
+//   page: number = 1,
+//   limit: number = 50
+// ): Promise<{
+//   id: string;
+//   name?: string;
+//   avatar?: string;
+//   provider?: string;
+//   favorited_count?: number;
+//   repChatId: string;
+// }[]> => {
+//   try {
+//     const chats = await fetchFavoriteChats(page, limit);
+
+//     const map = new Map<string, any>();
+//     for (const chat of chats || []) {
+//       const u = chat.user;
+//       if (!u || !u.id) continue;
+//       if (!map.has(u.id)) {
+//         map.set(u.id, {
+//           id: u.id,
+//           name: u.name,
+//           avatar: u.avatar || chat.user_avatar,
+//           provider: u.provider,
+//           favorited_count: u.favorited_count || chat.favorite_count || 0,
+//           repChatId: chat.id,
+//         });
+//       }
+//     }
+
+//     return Array.from(map.values());
+//   } catch (error) {
+//     console.error('Error fetching favorite users:', error);
+//     throw error;
+//   }
+// };
+
+/**
+ * Add a chat to good
+ */
+export const addGood = async (chatId: string): Promise<void> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/good`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        const error: any = new Error('Your session has expired. Please login again.');
+        error.status = 401;
+        throw error;
+      }
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to add good');
+    }
+  } catch (error) {
+    console.error('Error adding good:', error);
+    throw error;
+  }
+};
+
+/**
+ * Remove a chat from good
+ */
+export const removeGood = async (chatId: string): Promise<void> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chats/${chatId}/good`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        const error: any = new Error('Your session has expired. Please login again.');
+        error.status = 401;
+        throw error;
+      }
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to remove good');
+    }
+  } catch (error) {
+    console.error('Error removing good:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch user's good chats
+ */
+export const fetchGoodChats = async (
+  page: number = 1,
+  limit: number = 20
+): Promise<Chat[]> => {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/chats?good=true&page=${page}&page_size=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        const error: any = new Error('Your session has expired. Please login again.');
+        error.status = 401;
+        throw error;
+      }
+      throw new Error(`Failed to fetch favorite chats: ${response.status}`);
+    }
+
+    const data: ChatListResponse = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to fetch favorite chats');
+    }
+
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching favorite chats:', error);
+    throw error;
+  }
+};
+
 
 /**
  * Update a chat (title, description, category, public link)
