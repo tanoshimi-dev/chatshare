@@ -18,7 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchPublicChats, searchChatsAdvanced, SearchFilters, Chat, addFavoriteUser, removeFavoriteUser, addGood, removeGood } from '../services/chatService';
+import { fetchPublicChats, fetchChatById, SearchFilters, Chat, addFavoriteUser, removeFavoriteUser, addGood, removeGood } from '../services/chatService';
 import EditChatModal from '../components/EditChatModal';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { getDefaultSearch } from '../services/searchService';
@@ -252,9 +252,9 @@ const TimelineScreen = ({ navigation }: Props) => {
       console.log('===================');
       
       if (append) {
-        setChats(prev => [...prev, ...(data || [])]);
+        setChats(prev => [...prev, ...(data || [])].filter(Boolean));
       } else {
-        setChats(data || []);
+        setChats((data || []).filter(Boolean));
       }
       
       // Check if there are more items to load
@@ -360,25 +360,36 @@ const TimelineScreen = ({ navigation }: Props) => {
       
       // Optimistic update - only toggle is_gooded, not good_count
       setChats(prevChats =>
-        prevChats.map(c =>
-          c.id === chat.id ? { ...c, is_gooded: !isGooded } : c
-        )
+        prevChats
+          .map(c => (c && c.id === chat.id ? { ...c, is_gooded: !isGooded } : c))
+          .filter(Boolean)
       );
 
       if (isGooded) {
         await removeGood(chat.id);
+        // Update count locally after successful API call
+        setChats(prev => prev.map(c => {
+          if (c && c.id === chat.id) {
+            return { ...c, good_count: Math.max(0, (c.good_count || 0) - 1) };
+          }
+          return c;
+        }).filter(Boolean));
       } else {
         await addGood(chat.id);
+        // Update count locally after successful API call
+        setChats(prev => prev.map(c => {
+          if (c && c.id === chat.id) {
+            return { ...c, good_count: (c.good_count || 0) + 1 };
+          }
+          return c;
+        }).filter(Boolean));
       }
-      
-      // Reload chats to get updated good_count from backend
-      loadChats();
     } catch (error: any) {
-      // Revert on error
+      // Revert on error (also sanitize)
       setChats(prevChats =>
-        prevChats.map(c =>
-          c.id === chat.id ? { ...c, is_gooded: chat.is_gooded } : c
-        )
+        prevChats
+          .map(c => (c && c.id === chat.id ? { ...c, is_gooded: chat.is_gooded } : c))
+          .filter(Boolean)
       );
       
       // Handle 401 session expiration
@@ -413,30 +424,76 @@ const TimelineScreen = ({ navigation }: Props) => {
       return;
     }
 
+    console.log('Favorite toggle - chat:', chat.id, 'current favorited:', chat.is_favorited);
+
     try {
       const isFavorited = chat.is_favorited;
+      const targetUserId = chat.user_id || chat.user?.id;
       
-      // Optimistic update - only toggle is_favorited, not good_count
+      if (!targetUserId) {
+        Alert.alert('Error', 'Cannot identify chat owner');
+        return;
+      }
+
+      // Optimistic update - toggle is_favorited for ALL chats from this user
       setChats(prevChats =>
-        prevChats.map(c =>
-          c.id === chat.id ? { ...c, is_favorited: !isFavorited } : c
-        )
+        prevChats
+          .map(c => {
+            if (c && (c.user_id === targetUserId || c.user?.id === targetUserId)) {
+              return { ...c, is_favorited: !isFavorited };
+            }
+            return c;
+          })
+          .filter(Boolean)
       );
 
       if (isFavorited) {
         await removeFavoriteUser(chat.id);
+        console.log('Removed favorite for chat:', chat.id);
+        // Update user favorited_count locally for ALL chats from this user
+        setChats(prev => prev.map(c => {
+          if (c && (c.user_id === targetUserId || c.user?.id === targetUserId)) {
+            const updatedChat = { ...c };
+            if (updatedChat.user) {
+              updatedChat.user = {
+                ...updatedChat.user,
+                favorited_count: Math.max(0, (updatedChat.user.favorited_count || 0) - 1)
+              };
+            }
+            return updatedChat;
+          }
+          return c;
+        }).filter(Boolean));
       } else {
         await addFavoriteUser(chat.id);
+        console.log('Added favorite for chat:', chat.id);
+        // Update user favorited_count locally for ALL chats from this user
+        setChats(prev => prev.map(c => {
+          if (c && (c.user_id === targetUserId || c.user?.id === targetUserId)) {
+            const updatedChat = { ...c };
+            if (updatedChat.user) {
+              updatedChat.user = {
+                ...updatedChat.user,
+                favorited_count: (updatedChat.user.favorited_count || 0) + 1
+              };
+            }
+            return updatedChat;
+          }
+          return c;
+        }).filter(Boolean));
       }
-      
-      // Reload chats to get updated good_count from backend
-      loadChats();
     } catch (error: any) {
-      // Revert on error
+      // Revert on error (also sanitize) - revert ALL chats from this user
+      const targetUserId = chat.user_id || chat.user?.id;
       setChats(prevChats =>
-        prevChats.map(c =>
-          c.id === chat.id ? { ...c, is_favorited: chat.is_favorited } : c
-        )
+        prevChats
+          .map(c => {
+            if (c && targetUserId && (c.user_id === targetUserId || c.user?.id === targetUserId)) {
+              return { ...c, is_favorited: chat.is_favorited };
+            }
+            return c;
+          })
+          .filter(Boolean)
       );
       
       // Handle 401 session expiration
@@ -472,8 +529,9 @@ const TimelineScreen = ({ navigation }: Props) => {
 
   const handleChatUpdate = (updatedChat: Chat) => {
     setChats(prevChats =>
-      prevChats.map(chat => {
-        if (chat.id === updatedChat.id) {
+      prevChats
+        .map(chat => {
+          if (chat && chat.id === updatedChat.id) {
           // Merge updated chat with original, preserving critical fields
           return {
             ...chat,
@@ -490,6 +548,7 @@ const TimelineScreen = ({ navigation }: Props) => {
         }
         return chat;
       })
+      .filter(Boolean)
     );
   };
 
@@ -672,8 +731,8 @@ const TimelineScreen = ({ navigation }: Props) => {
       ) : (
         <FlatList
           data={chats}
-          renderItem={({ item }) => renderChatItem(item)}
-          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (item ? renderChatItem(item) : null)}
+          keyExtractor={(item, index) => (item && item.id) ? item.id : `missing-${index}`}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
