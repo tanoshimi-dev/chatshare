@@ -19,15 +19,16 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchFavoriteUsers, removeFavoriteUser } from '../services/favoriteUsersService';
+import { SearchFilters } from '../services/chatService';
 
 type DrawerParamList = {
-  Timeline: undefined;
+  Timeline: { searchFilters?: SearchFilters } | undefined;
   Favorite: undefined;
   Account: undefined;
 };
 
 type StackParamList = {
-  Timeline: undefined;
+  Timeline: { searchFilters?: SearchFilters } | undefined;
   Favorite: undefined;
   ShareDetail: { url: string };
 };
@@ -140,7 +141,13 @@ const FavoriteUsersScreen = ({ navigation }: Props) => {
   };
 
   const handleUserPress = (userId: string) => {
-    navigation.navigate('Account');
+    // Navigate to Timeline with search filters for this user's chats
+    const searchFilters: SearchFilters = {
+      userId: userId,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    };
+    navigation.navigate('Timeline', { searchFilters });
   };
 
   return (
@@ -192,7 +199,7 @@ const FavoriteUsersScreen = ({ navigation }: Props) => {
         <FlatList
           data={users}
           renderItem={({ item: u }) => (
-            <TouchableOpacity style={styles.chatItem} onPress={() => {}}>
+            <TouchableOpacity style={styles.chatItem} onPress={() => handleUserPress(u.id)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={styles.userAvatar}>
