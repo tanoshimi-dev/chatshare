@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
                         プライバシーポリシー
                     </h1>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        最終更新日: 2026年1月10日
+                        最終更新日: 2026年1月25日
                     </p>
                 </div>
 
@@ -129,26 +129,13 @@ export default function PrivacyPolicy() {
                         <li>サービスの提供に必要な業務委託先(適切な契約のもと)</li>
                     </ul>
 
-                    <h2 className="mt-4">6. ユーザーの権利</h2>
-                    <p>ユーザーは、以下の権利を有します:</p>
-                    <ul>
-                        <li><strong>アクセス権</strong>: 自分の個人情報へのアクセスを要求できます</li>
-                        <li><strong>訂正権</strong>: 不正確な個人情報の訂正を要求できます</li>
-                        <li><strong>削除権</strong>: 個人情報の削除を要求できます(アカウント削除)</li>
-                        <li><strong>データポータビリティ権</strong>: データの提供を要求できます</li>
-                        <li><strong>異議申し立て権</strong>: データ処理に異議を申し立てることができます</li>
-                    </ul>
-                    <p>これらの権利を行使するには、[連絡先メールアドレス]までご連絡ください。</p>
-
-                    <h2 className="mt-4">7. アカウントの削除</h2>
+                    <h2 className="mt-4">6. アカウントの削除</h2>
                     <p>アカウントを削除する場合:</p>
                     <ol>
                         <li>アプリ内の設定画面から「アカウント削除」を選択</li>
-                        <li>または[連絡先メールアドレス]まで削除依頼をご連絡ください</li>
                     </ol>
-                    <p>アカウント削除後、関連する個人情報は30日以内に削除されます。ただし、法令に基づき保持が必要な情報は除きます。</p>
 
-                    <h2 className="mt-4">8. Cookie・トラッキング技術</h2>
+                    <h2 className="mt-4">7. Cookie・トラッキング技術</h2>
                     <p>当アプリは、サービスの改善とパフォーマンス分析のため、以下の技術を使用します:</p>
                     <ul>
                         <li>セッション管理のためのトークン</li>
@@ -156,21 +143,13 @@ export default function PrivacyPolicy() {
                         <li>アプリの動作に必要な技術的情報</li>
                     </ul>
 
-                    <h2 className="mt-4">9. 子どもの個人情報</h2>
+                    <h2 className="mt-4">8. 子どもの個人情報</h2>
                     <p>当アプリは、13歳未満のお子様を対象としたサービスではありません。13歳未満のお子様が個人情報を提供したことが判明した場合、速やかに削除いたします。</p>
 
-                    <h2 className="mt-4">10. 国際的なデータ転送</h2>
+                    <h2 className="mt-4">9. 国際的なデータ転送</h2>
                     <p>収集された情報は、サービス提供のため、日本国外のサーバー(主にGoogleのデータセンター)に転送・保存される場合があります。これらのサーバーは、適切なセキュリティ対策が講じられています。</p>
 
-                    <h2 className="mt-4">11. データ保持期間</h2>
-                    <ul>
-                        <li>アカウント情報: アカウント削除まで</li>
-                        <li>利用履歴: 最大2年間</li>
-                        <li>ログデータ: 最大90日間</li>
-                        <li>バックアップデータ: 最大30日間</li>
-                    </ul>
-
-                    <h2 className="mt-4">12. プライバシーポリシーの変更</h2>
+                    <h2 className="mt-4">9. プライバシーポリシーの変更</h2>
                     <p>当アプリは、必要に応じて本プライバシーポリシーを変更することがあります。重要な変更がある場合は、アプリ内通知またはメールでお知らせします。</p>
 
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-6 rounded-lg mt-12 mb-8 border border-purple-200 dark:border-purple-800">

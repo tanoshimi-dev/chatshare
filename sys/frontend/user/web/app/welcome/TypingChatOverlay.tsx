@@ -10,30 +10,41 @@ interface Message {
 
 const messages: Message[] = [
     {
-        text: "モバイルアプリでしかできない事は何でしょうか。FlutterやReactnative、PWAなどでモバイルアプリを作ることもできますが",
+        text: "I received my Solana Mobile Seeker today and I'm excited to see what I can do with it as a software developer. What about building an app?",
         isUser: true,
     },
     {
-        text: "いい質問ですね Flutter や React Native、PWA など技術的には「スマホで動くアプリ」を作れますが、「ネイティブに近いモバイルアプリ」でしかできないこともあります。整理すると以下のようになります",
-        isUser: false,
-    },
-    // { text: "I'm learning React and Next.js!", isUser: true },
-    {
-        text: "Great choice! Let's build something amazing together.",
+        text: "Congratulations on getting your Solana Mobile Seeker! That's exciting - it's a great device for exploring mobile Web3 development.",
         isUser: false,
     },
     {
-        text: "Great choice! Let's build something amazing together.",
+        text: "Given your background with React Native, Flutter, and backend systems, you're well-positioned to build some interesting apps. Here are some approaches to consider:",
         isUser: false,
     },
     {
-        text: "Great choice! Let's build something amazing together.",
+        text: "Development Options",
         isUser: false,
     },
     {
-        text: "Great choice! Let's build something amazing together.",
+        text: "React Native + Solana Mobile SDK",
         isUser: false,
     },
+    {
+        text: " * Most natural fit given your React Native experience",
+        isUser: false,
+    },
+    {
+        text: " * Use @solana-mobile/mobile-wallet-adapter-protocol for wallet interactions",
+        isUser: false,
+    },
+    {
+        text: " * Integrate with @solana/web3.js for blockchain operations",
+        isUser: false,
+    },
+    {
+        text: " * You already know the ecosystem, so the learning curve is mainly the Solana-specific parts",
+        isUser: false,
+    },                
 ];
 
 export default function TypingChatOverlay() {
@@ -79,7 +90,7 @@ export default function TypingChatOverlay() {
     }, [currentMessageIndex, currentCharIndex]);
 
     return (
-        <div className="relative flex flex-row gap-4 items-center justify-center">
+        <div className="relative flex flex-row pt-4 gap-4 items-center justify-center">
             <div className="relative">
                 <Image
                     src="/images/programming_school_student.jpg"
@@ -109,7 +120,7 @@ export default function TypingChatOverlay() {
             </div>
 
             {/* Chat overlay */}
-            <div className="absolute inset-0 flex items-start justify-center pt-8 pointer-events-none">
+            <div className="absolute inset-0 flex items-start justify-center pt-32 pointer-events-none">
                 <div className="bg-transparent rounded-2xl shadow-2xl p-6 max-w-2xl w-full backdrop-blur-none border-0">
                     <div className="flex flex-col gap-3">
                         {displayedMessages.map((msg, idx) => (

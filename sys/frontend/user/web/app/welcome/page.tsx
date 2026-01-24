@@ -4,10 +4,10 @@ import TypingChatOverlay from "./TypingChatOverlay";
 export default function Home() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-            <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-4 sm:px-8 lg:px-16 bg-white dark:bg-black sm:items-start">
-                <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
+            <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between pt-12 pb-8 px-4 sm:px-8 lg:px-16 bg-white dark:bg-black sm:items-start">
+                <div className="flex flex-col items-center gap-6 mb-4 text-center sm:items-start sm:text-left">
                     <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-                        Share your chats
+                        Share your AI chats
                     </h1>
                     <Image
                         src="/images/logo5.png"
@@ -18,22 +18,9 @@ export default function Home() {
                     />
 
                     <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-                        Looking for a starting point or more instructions? Head
-                        over to{" "}
-                        <a
-                            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-                            className="font-medium text-zinc-950 dark:text-zinc-50"
-                        >
-                            Templates
-                        </a>{" "}
-                        or the{" "}
-                        <a
-                            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-                            className="font-medium text-zinc-950 dark:text-zinc-50"
-                        >
-                            Learning
-                        </a>{" "}
-                        center.
+                        Everyday we talk to AI as a developer.
+                        <br />
+                        Sometimes the conversations are really helpful.
                     </p>
 
                     <Image
@@ -45,44 +32,27 @@ export default function Home() {
                     />
                 </div>
 
-                <div className="mt-2 flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-                    <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-                        AI6.
+                <div className="flex flex-col items-center gap-3 text-center sm:items-start sm:text-left">
+                    <h1 className="max-w-xs text-2xl mt-3 font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
+                    Everyone is looking forward to your share.
                     </h1>
+                    {/* Everyone is looking forward to your share. */}
                     <p className="max-w-xs text-sm text-black dark:text-zinc-50">
-                        AI6
+                        Make public links of 
+                        <span className="font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">ChatGPT</span>, 
+                        <span className="font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">Claude</span>, 
+                        <span className="font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Copilot</span> 
+                        <br/>
+                        and share using {' '} 
+                        <span className="font-bold text-pink-600 underline underline-offset-4">
+                        ChatShare.dev
+                        </span>{' '} app.
                     </p>
                 </div>
 
                 <TypingChatOverlay />
 
-                <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-                    <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-                        Share your chats
-                    </h1>
-                    <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-                        Looking for a starting point or more instructions? Head
-                        over to{" "}
-                        <a
-                            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-                            className="font-medium text-zinc-950 dark:text-zinc-50"
-                        >
-                            Templates
-                        </a>{" "}
-                        or the{" "}
-                        <a
-                            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-                            className="font-medium text-zinc-950 dark:text-zinc-50"
-                        >
-                            Learning
-                        </a>{" "}
-                        center.
-                    </p>
-                </div>
-
-
-
-                <div className="mt-4 flex flex-row w-full items-center justify-center gap-4 overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gradient-to-r [&::-webkit-scrollbar-thumb]:from-purple-300/30 [&::-webkit-scrollbar-thumb]:to-blue-300/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div className="my-4 flex flex-row w-full items-center justify-center gap-4 overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gradient-to-r [&::-webkit-scrollbar-thumb]:from-purple-300/30 [&::-webkit-scrollbar-thumb]:to-blue-300/30 [&::-webkit-scrollbar-thumb]:rounded-full">
                     <Image
                         src="/images/emulator-image-1.png"
                         alt="app image 1"
@@ -161,6 +131,21 @@ export default function Home() {
                     </section>
                 </div>
 
+                <footer className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800 w-full">
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <div className="flex gap-6">
+                            <a href="/policy" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition">
+                                Privacy Policy
+                            </a>
+                            <a href="mailto:contact@chatshare.dev" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition">
+                                Contact
+                            </a>
+                        </div>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                            © 2026 たのしみdev. All rights reserved.
+                        </p>
+                    </div>
+                </footer>
 
             </main>
         </div>
