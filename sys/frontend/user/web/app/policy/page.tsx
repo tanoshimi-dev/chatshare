@@ -4,7 +4,7 @@ export default function PrivacyPolicy() {
             <main className="flex min-h-screen w-full max-w-4xl flex-col items-center py-16 px-4 sm:px-8 lg:px-16 bg-white dark:bg-black">
                 {/* Header Section */}
                 <div className="flex flex-col items-center gap-4 text-center mb-12">
-                    <h1 className="text-4xl font-bold tracking-tight text-black dark:text-zinc-50">
+                    <h1 className="text-3xl font-bold tracking-tight text-black dark:text-zinc-50">
                         プライバシーポリシー
                     </h1>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
                 </div>
 
                 {/* Content Section */}
-                <div className="w-full max-w-3xl prose prose-zinc dark:prose-invert prose-headings:font-semibold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:pt-8 prose-h2:border-t prose-h2:border-zinc-200 dark:prose-h2:border-zinc-800 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-zinc-600 dark:prose-p:text-zinc-400 prose-p:leading-relaxed prose-li:text-zinc-600 dark:prose-li:text-zinc-400">
+                <div className="w-full max-w-2xl prose prose-zinc dark:prose-invert prose-headings:font-semibold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:pt-8 prose-h2:border-t prose-h2:border-zinc-200 dark:prose-h2:border-zinc-800 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-zinc-600 dark:prose-p:text-zinc-400 prose-p:leading-relaxed prose-li:text-zinc-600 dark:prose-li:text-zinc-400">
                     
                     <p className="text-lg leading-8">
                         ChatShare(以下「当アプリ」)をご利用いただきありがとうございます。

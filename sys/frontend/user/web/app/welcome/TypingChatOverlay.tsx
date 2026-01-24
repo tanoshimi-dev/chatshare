@@ -10,7 +10,7 @@ interface Message {
 
 const messages: Message[] = [
     {
-        text: "I received my Solana Mobile Seeker today and I'm excited to see what I can do with it as a software developer. What about building an app?",
+        text: "I received a solana mobile seeker today and I'm excited to see what I can do with it as a software developer. What about building an app?",
         isUser: true,
     },
     {
