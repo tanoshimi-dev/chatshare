@@ -10,6 +10,10 @@ import {
   AppState,
   ImageBackground,
   Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -40,6 +44,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
   const [loginProcessed, setLoginProcessed] = useState(false);
   const [appStateVisible, setAppStateVisible] = useState(AppState.currentState);
   const { dummyLogin, refreshUser } = useAuth();
+  
+  // Detect orientation
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   React.useEffect(() => {
     // Configure Google Sign-In and LINE Login when component mounts
@@ -395,26 +403,36 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
   };
 
   return (
-      <View style={styles.container}>
-        <View>
-          {/* App Logo/Title */}
-          <View style={styles.logo}>
-            <Image 
-              source={require('../../icon/chatshare-logo.png')}
-              resizeMode="contain"
-            />
-            {/* <Text style={styles.title}>ChatShare</Text> */}
-            <Text style={styles.logoSubtitle}>Share your conversations</Text>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={isLandscape ? styles.contentRowContainer : styles.contentColumnContainer}>
+          <View style={isLandscape ? styles.logoContainerLandscape : styles.logoContainer}>
+            {/* App Logo/Title */}
+            <View style={styles.logo}>
+              <Image 
+                source={require('../../icon/chatshare-logo.png')}
+                resizeMode="contain"
+              />
+              {/* <Text style={styles.title}>ChatShare</Text> */}
+              <Text style={styles.logoSubtitle}>Share your conversations</Text>
+            </View>
           </View>
-        </View>
 
-        <View style={styles.main}>
-          <ImageBackground
-            source={require('../../assets/image/programming_school_girl_home_resized.png')}
-            style={styles.mainCharacterImage}
-            resizeMode="contain"
-          >
-          </ImageBackground>
+          <View style={isLandscape ? styles.mainLandscape : styles.main}>
+            <ImageBackground
+              source={require('../../assets/image/programming_school_girl_home_resized.png')}
+              style={isLandscape ? styles.mainCharacterImageLandscape : styles.mainCharacterImage}
+              resizeMode="contain"
+            >
+            </ImageBackground>
+          </View>
         </View>
 
         {/* Sign In Button */}
@@ -486,10 +504,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
           </Text>
 
         </View>
-
-
-    </View>
-
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -498,77 +514,72 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  // overlay: {
-  //   flex: 1,
-  //   //backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark overlay for better text readability
-  // },
-  logo : {
-    marginTop: 120,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  contentColumnContainer: {
+    flexDirection: 'column',
+    paddingTop: 80,
+  },
+
+  contentRowContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 160,
+    paddingTop: 20,
+    alignItems: 'center',
+  },
+  logoContainer: {
+    paddingTop: 20,
+  },
+  logoContainerLandscape: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    // borderWidth: 1
   },
   logoSubtitle: {
     fontSize: 18,
     color: '#5e5757',
     textAlign: 'center',
     marginTop: 10,
-    // textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    // textShadowOffset: { width: -1, height: 1 },
-    // textShadowRadius: 10,
   },  
-  main : {
-    flex: 1,
+  main: {
     justifyContent: 'flex-start',
     paddingHorizontal: 20,
     paddingVertical: 10,
     paddingTop: 20,
-    // borderWidth: 1
+    minHeight: 250,
   },
-  mainCharacterImage : {
-    // padding: 12,
+  mainLandscape: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mainCharacterImage: {
     justifyContent: 'space-between',
-    // paddingHorizontal: 20,
     paddingVertical: 0,
-    // borderWidth: 1,
-    // alignContent: 'center',
     width: '100%',
-    height: '100%'
+    height: 250,
+    marginTop: 40,
+    marginBottom: 40,
   },
-
-  // // content: {
-  // //   flex: 1,
-  // //   justifyContent: 'space-between',
-  // //   paddingHorizontal: 20,
-  // //   paddingVertical: 60,
-  // // },
-  // headerContainer: {
-  //   flex: 1,
-  //   justifyContent: 'center',
-  //   alignItems: 'center',
-  //   marginTop: -80,
-  // },
-  // logo: {
-  //   width: 150,
-  //   height: 150,
-  //   marginBottom: 20,
-  // },
-  // title: {
-  //   fontSize: 42,
-  //   fontWeight: 'bold',
-  //   color: '#ffffff',
-  //   marginBottom: 10,
-  //   // textShadowColor: 'rgba(0, 0, 0, 0.75)',
-  //   // textShadowOffset: { width: -1, height: 1 },
-  //   // textShadowRadius: 10,
-  // },
+  mainCharacterImageLandscape: {
+    justifyContent: 'center',
+    paddingVertical: 0,
+    width: '100%',
+    height: 200,
+  },
 
   buttonContainer: {
     width: '100%',
     paddingHorizontal: 20,
-    paddingBottom: 40,
-    // borderWidth: 1,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   dummyButton: {
     flexDirection: 'row',
