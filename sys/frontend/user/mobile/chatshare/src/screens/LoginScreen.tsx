@@ -8,6 +8,8 @@ import {
   Alert,
   Linking,
   AppState,
+  ImageBackground,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -393,12 +395,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        {/* App Logo/Title */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>ChatShare</Text>
-          <Text style={styles.subtitle}>Share your conversations</Text>
+      <View style={styles.container}>
+        <View>
+          {/* App Logo/Title */}
+          <View style={styles.logo}>
+            <Image 
+              source={require('../../icon/chatshare-logo.png')}
+              resizeMode="contain"
+            />
+            {/* <Text style={styles.title}>ChatShare</Text> */}
+            <Text style={styles.logoSubtitle}>Share your conversations</Text>
+          </View>
+        </View>
+
+        <View style={styles.main}>
+          <ImageBackground
+            source={require('../../assets/image/programming_school_girl_home_resized.png')}
+            style={styles.mainCharacterImage}
+            resizeMode="contain"
+          >
+          </ImageBackground>
         </View>
 
         {/* Sign In Button */}
@@ -452,13 +468,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
               Complete your login in the browser, then return to this app
             </Text>
           )}
-
+          {/* 
           <TouchableOpacity
             style={styles.debugButton}
             onPress={handleNetworkDebug}
           >
             <Text style={styles.debugButtonText}>🔍 Network Debug ver 18</Text>
           </TouchableOpacity>
+          */}
 
           <Text style={styles.termsText}>
             By signing in, you agree to our Terms of Service and
@@ -467,47 +484,97 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
               Privacy Policy
             </Text>
           </Text>
+
         </View>
-      </View>
+
+
     </View>
+
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: 30,
-    paddingVertical: 60,
-  },
-  headerContainer: {
-    flex: 1,
+  // overlay: {
+  //   flex: 1,
+  //   //backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark overlay for better text readability
+  // },
+  logo : {
+    marginTop: 120,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    // borderWidth: 1
   },
-  title: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 10,
-  },
-  subtitle: {
+  logoSubtitle: {
     fontSize: 18,
-    color: '#666',
+    color: '#5e5757',
     textAlign: 'center',
+    marginTop: 10,
+    // textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    // textShadowOffset: { width: -1, height: 1 },
+    // textShadowRadius: 10,
+  },  
+  main : {
+    flex: 1,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingTop: 20,
+    // borderWidth: 1
   },
+  mainCharacterImage : {
+    // padding: 12,
+    justifyContent: 'space-between',
+    // paddingHorizontal: 20,
+    paddingVertical: 0,
+    // borderWidth: 1,
+    // alignContent: 'center',
+    width: '100%',
+    height: '100%'
+  },
+
+  // // content: {
+  // //   flex: 1,
+  // //   justifyContent: 'space-between',
+  // //   paddingHorizontal: 20,
+  // //   paddingVertical: 60,
+  // // },
+  // headerContainer: {
+  //   flex: 1,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   marginTop: -80,
+  // },
+  // logo: {
+  //   width: 150,
+  //   height: 150,
+  //   marginBottom: 20,
+  // },
+  // title: {
+  //   fontSize: 42,
+  //   fontWeight: 'bold',
+  //   color: '#ffffff',
+  //   marginBottom: 10,
+  //   // textShadowColor: 'rgba(0, 0, 0, 0.75)',
+  //   // textShadowOffset: { width: -1, height: 1 },
+  //   // textShadowRadius: 10,
+  // },
+
   buttonContainer: {
     width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    // borderWidth: 1,
   },
   dummyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#34C759',
+    backgroundColor: '#f2eb65',
     borderRadius: 8,
     paddingVertical: 14,
     paddingHorizontal: 20,
@@ -589,7 +656,7 @@ const styles = StyleSheet.create({
     color: '#00B900',
   },
   buttonText: {
-    color: '#fff',
+    color: '#371b1b',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -625,12 +692,15 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: '#999',
+    color: '#5e5757',
     textAlign: 'center',
     lineHeight: 18,
+    // textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    // textShadowOffset: { width: -1, height: 1 },
+    // textShadowRadius: 5,
   },
   linkText: {
-    color: '#007AFF',
+    color: '#045277',
     textDecorationLine: 'underline',
   },
 });
