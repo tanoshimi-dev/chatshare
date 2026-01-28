@@ -40,6 +40,12 @@ type Config struct {
 	LINEChannelSecret string
 	LINERedirectURL   string
 
+	// OAuth Apple
+	AppleTeamID     string
+	AppleClientID   string
+	AppleKeyID      string
+	ApplePrivateKey string
+
 	// Email
 	SendGridAPIKey string
 	FromEmail      string
@@ -103,6 +109,11 @@ func LoadConfig() *Config {
 		LINEChannelID:     getEnv("LINE_CHANNEL_ID", ""),
 		LINEChannelSecret: getEnv("LINE_CHANNEL_SECRET", ""),
 		LINERedirectURL:   getEnv("LINE_REDIRECT_URL", ""),
+
+		AppleTeamID:     getEnv("APPLE_TEAM_ID", ""),
+		AppleClientID:   getEnv("APPLE_CLIENT_ID", ""),
+		AppleKeyID:      getEnv("APPLE_KEY_ID", ""),
+		ApplePrivateKey: getEnv("APPLE_PRIVATE_KEY", ""),
 
 		SendGridAPIKey: getEnv("SENDGRID_API_KEY", ""),
 		FromEmail:      getEnv("FROM_EMAIL", "noreply@chatshare.com"),

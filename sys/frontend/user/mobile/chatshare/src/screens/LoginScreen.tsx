@@ -21,10 +21,13 @@ import {
   signInWithGoogle, 
   configureGoogleSignIn,
   configureLineLogin, 
-  isLineLoginAvailable
+  isLineLoginAvailable,
+  signInWithApple,
+  isAppleSignInAvailable
 } from '../services/authService';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { Config } from 'react-native-config';
 import Config from 'react-native-config';
 import EmulatorDetector from '../constants/EmulatorDetector';
@@ -41,6 +44,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
 
   const [loading, setLoading] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleSignInAvailable, setAppleSignInAvailable] = useState(false);
   const [loginProcessed, setLoginProcessed] = useState(false);
   const [appStateVisible, setAppStateVisible] = useState(AppState.currentState);
   const { dummyLogin, refreshUser } = useAuth();
@@ -53,6 +58,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
     // Configure Google Sign-In and LINE Login when component mounts
     configureGoogleSignIn();
     configureLineLogin(); // Now synchronous, returns boolean
+    
+    // Check Apple Sign In availability
+    const checkAppleSignIn = async () => {
+      const available = await isAppleSignInAvailable();
+      setAppleSignInAvailable(available);
+    };
+    checkAppleSignIn();
   }, []);
 
   // Monitor app state changes to detect when user returns from LINE app/browser
@@ -359,6 +371,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      const authResponse = await signInWithApple();
+
+      Alert.alert(
+        'Success',
+        `Welcome ${authResponse.user.name}!`,
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await refreshUser();
+              if (onLoginSuccess) {
+                onLoginSuccess();
+              }
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Apple sign in error:', error);
+      // Only show error if it's not a cancellation
+      if (error.message && !error.message.includes('canceled')) {
+        Alert.alert(
+          'Sign In Failed',
+          error.message || 'An error occurred during sign in. Please try again.'
+        );
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   const openPrivacyPolicy = async () => {
     const url = 'https://chatshare.dev/policy';
     try {
@@ -480,6 +526,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
               </>
             )}
           </TouchableOpacity>
+
+          {appleSignInAvailable && (
+            <TouchableOpacity
+              style={[styles.appleButton, appleLoading && styles.buttonDisabled]}
+              onPress={handleAppleSignIn}
+              disabled={appleLoading}
+            >
+              {appleLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <View style={styles.appleIconContainer}>
+                    <Ionicons name="logo-apple" size={20} color="#fff" />
+                  </View>
+                  <Text style={[styles.buttonText, styles.appleButtonText]}>Sign in with Apple</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
 
           {lineLoading && (
             <Text style={styles.helpText}>
@@ -635,6 +700,24 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
+  appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
   buttonDisabled: {
     opacity: 0.6,
   },
@@ -665,6 +748,22 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: 'bold',
     color: '#00B900',
+  },
+  appleIconContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  appleButtonText: {
+    color: '#fff',
+    marginRight: 12,
+  },
+  appleIcon: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
   },
   buttonText: {
     color: '#371b1b',

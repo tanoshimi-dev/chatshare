@@ -51,6 +51,10 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 			auth.GET("/line/url", authHandler.GetLINEOAuthURL)
 			auth.GET("/line/callback", authHandler.LINECallbackGET)
 			auth.POST("/line/callback", authHandler.LINECallback)
+			
+			// Apple Sign In
+			auth.POST("/apple/callback", authHandler.AppleCallback)
+			
 			auth.GET("/me", middleware.AuthMiddleware(cfg), authHandler.GetCurrentUser)
 
 			// Logout

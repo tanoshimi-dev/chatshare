@@ -6,6 +6,7 @@ import {
   getCurrentUser,
   logout as authLogout,
   signInWithGoogle,
+  signInWithApple,
 } from '../services/authService';
 
 interface AuthContextType {
@@ -14,6 +15,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isAuthenticatedUser: boolean; // true only for real authenticated users (not demo user)
   login: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   dummyLogin: () => void;
@@ -83,6 +85,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithApple = async () => {
+    try {
+      setLoading(true);
+      const authResponse = await signInWithApple();
+      setUser(authResponse.user);
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.error('Apple login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       setLoading(true);
@@ -140,6 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoggedIn,
     isAuthenticatedUser,
     login,
+    loginWithApple,
     logout,
     refreshUser,
     dummyLogin,

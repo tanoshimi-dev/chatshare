@@ -2,10 +2,14 @@ package handlers
 
 import (
 	"context"
+	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/chatshare/backend/internal/config"
@@ -13,12 +17,45 @@ import (
 	"github.com/chatshare/backend/internal/firebase"
 	"github.com/chatshare/backend/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gorm.io/gorm"
 )
+
+// Apple JWKS cache
+var (
+	appleJWKSCache     *AppleJWKS
+	appleJWKSCacheMu   sync.RWMutex
+	appleJWKSCacheTime time.Time
+)
+
+// AppleJWKS represents Apple's JSON Web Key Set
+type AppleJWKS struct {
+	Keys []AppleJWK `json:"keys"`
+}
+
+// AppleJWK represents a single JSON Web Key from Apple
+type AppleJWK struct {
+	Kty string `json:"kty"`
+	Kid string `json:"kid"`
+	Use string `json:"use"`
+	Alg string `json:"alg"`
+	N   string `json:"n"`
+	E   string `json:"e"`
+}
+
+// AppleClaims represents the claims in an Apple ID token
+type AppleClaims struct {
+	jwt.RegisteredClaims
+	Email         string `json:"email,omitempty"`
+	EmailVerified any    `json:"email_verified,omitempty"` // Can be bool or string
+	IsPrivateEmail any   `json:"is_private_email,omitempty"`
+	AuthTime      int64  `json:"auth_time,omitempty"`
+	NonceSupported bool  `json:"nonce_supported,omitempty"`
+}
 
 type AuthHandler struct {
 	db            *gorm.DB
@@ -601,3 +638,242 @@ func isMobileWebView(c *gin.Context) bool {
 		// Accept HTML (indicates WebView vs API call)
 		(accept == "" || accept != "application/json"))
 }
+
+// AppleCallback handles Apple Sign In authentication
+// POST /api/v1/auth/apple/callback
+func (h *AuthHandler) AppleCallback(c *gin.Context) {
+	var req struct {
+		IdentityToken string  `json:"identityToken" binding:"required"`
+		User          string  `json:"user" binding:"required"`
+		Email         *string `json:"email"`
+		FullName      string  `json:"fullName"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	ctx := context.Background()
+
+	// Verify the identity token with Apple's public keys
+	// For production, you should validate the JWT token signature using Apple's public keys
+	// For now, we'll decode it without full verification (development only)
+	claims, err := h.verifyAppleToken(req.IdentityToken)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusUnauthorized, fmt.Sprintf("Invalid Apple token: %v", err))
+		return
+	}
+
+	// Extract user info from claims
+	appleUserID := req.User
+	email := ""
+	
+	// Email might be in the claims or in the request
+	if emailClaim, ok := claims["email"].(string); ok && emailClaim != "" {
+		email = emailClaim
+	} else if req.Email != nil && *req.Email != "" {
+		email = *req.Email
+	} else {
+		// Apple may not provide email if user chose to hide it
+		// Use a placeholder email with Apple ID
+		email = fmt.Sprintf("%s@privaterelay.appleid.com", appleUserID)
+	}
+
+	// Use provided full name or default
+	name := req.FullName
+	if name == "" {
+		name = "Apple User"
+	}
+
+	// Email is always considered verified for Apple Sign In
+	emailVerified := true
+
+	// Create or update user in database and Firebase
+	user, jwtToken, err := h.findOrCreateUser(
+		ctx,
+		email,
+		name,
+		"", // Apple doesn't provide avatar by default
+		"apple",
+		appleUserID,
+		emailVerified,
+	)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to process user")
+		return
+	}
+
+	// Set session cookie
+	isProduction := h.cfg.Environment == "production"
+	utils.SetAuthCookie(c, jwtToken, isProduction)
+
+	utils.SuccessResponse(c, http.StatusOK, gin.H{
+		"token": jwtToken,
+		"user":  user,
+	})
+}
+
+// verifyAppleToken verifies the Apple ID token using Apple's public keys
+func (h *AuthHandler) verifyAppleToken(identityToken string) (map[string]interface{}, error) {
+	// Fetch Apple's public keys
+	jwks, err := fetchApplePublicKeys()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Apple public keys: %v", err)
+	}
+
+	// Parse and verify the token
+	token, err := jwt.ParseWithClaims(identityToken, &AppleClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Verify the signing method is RS256
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// Get the key ID from the token header
+		kid, ok := token.Header["kid"].(string)
+		if !ok {
+			return nil, fmt.Errorf("missing kid in token header")
+		}
+
+		// Find the matching public key
+		for _, key := range jwks.Keys {
+			if key.Kid == kid {
+				return key.ToRSAPublicKey()
+			}
+		}
+
+		return nil, fmt.Errorf("no matching key found for kid: %s", kid)
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %v", err)
+	}
+
+	claims, ok := token.Claims.(*AppleClaims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	// Verify issuer
+	if claims.Issuer != "https://appleid.apple.com" {
+		return nil, fmt.Errorf("invalid issuer: %s", claims.Issuer)
+	}
+
+	// Verify audience (should match app's bundle ID / client ID)
+	// Support multiple valid audiences (app bundle ID and service ID)
+	validAudiences := []string{h.cfg.AppleClientID}
+	if h.cfg.AppleClientID == "" {
+		// If not configured, skip audience validation but log warning
+		fmt.Println("Warning: APPLE_CLIENT_ID not configured, skipping audience validation")
+	} else {
+		audienceValid := false
+		for _, aud := range claims.Audience {
+			for _, validAud := range validAudiences {
+				if aud == validAud {
+					audienceValid = true
+					break
+				}
+			}
+		}
+		if !audienceValid {
+			return nil, fmt.Errorf("invalid audience: %v, expected: %v", claims.Audience, validAudiences)
+		}
+	}
+
+	// Verify expiration
+	if claims.ExpiresAt != nil && claims.ExpiresAt.Before(time.Now()) {
+		return nil, fmt.Errorf("token has expired")
+	}
+
+	// Convert claims to map for compatibility with existing code
+	claimsMap := make(map[string]interface{})
+	claimsMap["sub"] = claims.Subject
+	claimsMap["iss"] = claims.Issuer
+	claimsMap["aud"] = claims.Audience
+	claimsMap["exp"] = claims.ExpiresAt
+	claimsMap["iat"] = claims.IssuedAt
+	if claims.Email != "" {
+		claimsMap["email"] = claims.Email
+	}
+	if claims.EmailVerified != nil {
+		claimsMap["email_verified"] = claims.EmailVerified
+	}
+
+	return claimsMap, nil
+}
+
+// fetchApplePublicKeys fetches Apple's public keys from their JWKS endpoint
+// Keys are cached for 24 hours to reduce API calls
+func fetchApplePublicKeys() (*AppleJWKS, error) {
+	appleJWKSCacheMu.RLock()
+	if appleJWKSCache != nil && time.Since(appleJWKSCacheTime) < 24*time.Hour {
+		defer appleJWKSCacheMu.RUnlock()
+		return appleJWKSCache, nil
+	}
+	appleJWKSCacheMu.RUnlock()
+
+	// Fetch fresh keys
+	appleJWKSCacheMu.Lock()
+	defer appleJWKSCacheMu.Unlock()
+
+	// Double-check after acquiring write lock
+	if appleJWKSCache != nil && time.Since(appleJWKSCacheTime) < 24*time.Hour {
+		return appleJWKSCache, nil
+	}
+
+	resp, err := http.Get("https://appleid.apple.com/auth/keys")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Apple JWKS: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Apple JWKS endpoint returned status: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Apple JWKS response: %v", err)
+	}
+
+	var jwks AppleJWKS
+	if err := json.Unmarshal(body, &jwks); err != nil {
+		return nil, fmt.Errorf("failed to parse Apple JWKS: %v", err)
+	}
+
+	// Cache the keys
+	appleJWKSCache = &jwks
+	appleJWKSCacheTime = time.Now()
+
+	return &jwks, nil
+}
+
+// ToRSAPublicKey converts an AppleJWK to an RSA public key
+func (k *AppleJWK) ToRSAPublicKey() (*rsa.PublicKey, error) {
+	// Decode the modulus (n)
+	nBytes, err := base64.RawURLEncoding.DecodeString(k.N)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode modulus: %v", err)
+	}
+
+	// Decode the exponent (e)
+	eBytes, err := base64.RawURLEncoding.DecodeString(k.E)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode exponent: %v", err)
+	}
+
+	// Convert exponent bytes to int
+	var e int
+	for _, b := range eBytes {
+		e = e<<8 + int(b)
+	}
+
+	// Create the RSA public key
+	pubKey := &rsa.PublicKey{
+		N: new(big.Int).SetBytes(nBytes),
+		E: e,
+	}
+
+	return pubKey, nil
+}
+

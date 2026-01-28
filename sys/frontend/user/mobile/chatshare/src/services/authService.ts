@@ -2,8 +2,9 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Config from 'react-native-config';
 import EmulatorDetector from '../constants/EmulatorDetector';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { WebView } from "react-native-webview";
+import appleAuth from '@invertase/react-native-apple-authentication';
 
 // Declare global types for LINE OAuth
 declare global {
@@ -561,4 +562,126 @@ export const isLineLoginAvailable = (): boolean => {
   // Do not rely on a hardcoded negative comparison; allow development hosts
   // to be used — network failures will be surfaced when attempting the flow.
   return !!channelId && !!apiBase;
+};
+
+// Apple Sign-In Flow
+// Only available on iOS 13+
+export const signInWithApple = async (): Promise<AuthResponse> => {
+  try {
+    console.log('Starting Apple Sign-In...');
+
+    // Perform Apple sign in request
+    const appleAuthRequestResponse = await appleAuth.performRequest({
+      requestedOperation: appleAuth.Operation.LOGIN,
+      requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+    });
+
+    // Get credential state
+    const credentialState = await appleAuth.getCredentialStateForUser(
+      appleAuthRequestResponse.user
+    );
+
+    console.log('Apple credential state:', credentialState, 'Expected:', appleAuth.State.AUTHORIZED);
+
+    // In development/simulator, the credential state check can be unreliable
+    if (credentialState !== appleAuth.State.AUTHORIZED) {
+      if (__DEV__) {
+        console.warn('Apple Sign-In credential state not AUTHORIZED, but continuing in dev mode');
+      } else {
+        throw new Error('Apple Sign-In authorization failed');
+      }
+    }
+
+    console.log('Apple Sign-In successful - Response:', appleAuthRequestResponse);
+
+    const { identityToken, user: appleUserId, fullName, email } = appleAuthRequestResponse;
+
+    if (!identityToken) {
+      throw new Error('Failed to get identity token from Apple');
+    }
+
+    // Construct user name from fullName if available
+    let userName = 'Apple User';
+    if (fullName) {
+      const nameParts = [];
+      if (fullName.givenName) nameParts.push(fullName.givenName);
+      if (fullName.familyName) nameParts.push(fullName.familyName);
+      if (nameParts.length > 0) {
+        userName = nameParts.join(' ');
+      }
+    }
+
+    // Prepare request body
+    const requestBody = {
+      identityToken,
+      user: appleUserId,
+      email: email || null,
+      fullName: userName,
+    };
+
+    console.log('Calling backend with Apple auth data...');
+    const apiUrl = `${API_BASE_URL}/auth/apple/callback`;
+    console.log('API URL:', apiUrl);
+
+    // Make backend call using fetch
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log('Backend response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error:', errorText);
+      throw new Error(`Backend error: ${response.status}`);
+    }
+
+    const callbackData = await response.json();
+    console.log('Backend response:', callbackData);
+
+    if (!callbackData.success) {
+      throw new Error(callbackData.message || 'Authentication failed');
+    }
+
+    const authResponse: AuthResponse = callbackData.data;
+
+    // Store token and user data
+    await AsyncStorage.setItem('auth_token', authResponse.token);
+    await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
+
+    console.log('Apple authentication completed successfully');
+    return authResponse;
+  } catch (error: any) {
+    console.error('Apple Sign-In error:', error);
+
+    if (error.code === appleAuth.Error.CANCELED) {
+      throw new Error('Apple Sign-In was canceled');
+    } else if (error.code === appleAuth.Error.FAILED) {
+      throw new Error('Apple Sign-In failed');
+    } else if (error.code === appleAuth.Error.NOT_HANDLED) {
+      throw new Error('Apple Sign-In was not handled');
+    } else if (error.code === appleAuth.Error.UNKNOWN) {
+      throw new Error('Unknown Apple Sign-In error');
+    } else {
+      throw error;
+    }
+  }
+};
+
+// Check if Apple Sign In is available (iOS 13+ only)
+export const isAppleSignInAvailable = async (): Promise<boolean> => {
+  if (Platform.OS !== 'ios') {
+    return false;
+  }
+  
+  try {
+    return appleAuth.isSupported;
+  } catch (error) {
+    console.error('Error checking Apple Sign-In availability:', error);
+    return false;
+  }
 };
