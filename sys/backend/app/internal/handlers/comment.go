@@ -12,12 +12,17 @@ import (
 )
 
 type CommentHandler struct {
-	db  *gorm.DB
-	cfg *config.Config
+	db            *gorm.DB
+	cfg           *config.Config
+	contentFilter *ContentFilterService
 }
 
 func NewCommentHandler(db *gorm.DB, cfg *config.Config) *CommentHandler {
-	return &CommentHandler{db: db, cfg: cfg}
+	return &CommentHandler{
+		db:            db,
+		cfg:           cfg,
+		contentFilter: NewContentFilterService(db),
+	}
 }
 
 func (h *CommentHandler) CreateComment(c *gin.Context) {
@@ -45,12 +50,19 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		return
 	}
 
+	// Check content against filter keywords
+	matchedKeyword := h.contentFilter.CheckContent(req.Content)
+	commentStatus := "active"
+	if matchedKeyword != "" {
+		commentStatus = "flagged"
+	}
+
 	comment := database.Comment{
 		ID:      uuid.New(),
 		ChatID:  chatID,
 		UserID:  userID.(uuid.UUID),
 		Content: req.Content,
-		Status:  "active",
+		Status:  commentStatus,
 	}
 
 	if err := h.db.Create(&comment).Error; err != nil {
@@ -73,9 +85,18 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 		return
 	}
 
+	query := h.db.Model(&database.Comment{}).Where("chat_id = ? AND status = ?", chatID, "active")
+
+	// Filter out comments from blocked users if user is authenticated
+	if currentUserID, exists := c.Get("user_id"); exists {
+		query = query.Where("user_id NOT IN (?)",
+			h.db.Table("blocked_users").
+				Select("blocked_id").
+				Where("blocker_id = ?", currentUserID))
+	}
+
 	var comments []database.Comment
-	if err := h.db.Preload("User").Where("chat_id = ? AND status = ?", chatID, "active").
-		Order("created_at DESC").Find(&comments).Error; err != nil {
+	if err := query.Preload("User").Order("created_at DESC").Find(&comments).Error; err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch comments")
 		return
 	}

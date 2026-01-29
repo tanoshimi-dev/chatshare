@@ -50,6 +50,10 @@ type Config struct {
 	SendGridAPIKey string
 	FromEmail      string
 	FromName       string
+	AdminEmail     string
+
+	// Terms of Service
+	ToSVersion string
 
 	// Frontend
 	FrontendURL string
@@ -118,6 +122,9 @@ func LoadConfig() *Config {
 		SendGridAPIKey: getEnv("SENDGRID_API_KEY", ""),
 		FromEmail:      getEnv("FROM_EMAIL", "noreply@chatshare.com"),
 		FromName:       getEnv("FROM_NAME", "ChatShare"),
+		AdminEmail:     getEnv("ADMIN_EMAIL", "admin@chatshare.com"),
+
+		ToSVersion: getEnv("TOS_VERSION", "1.0"),
 
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 

@@ -20,8 +20,10 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchPublicChats, fetchChatById, SearchFilters, Chat, addFavoriteUser, removeFavoriteUser, addGood, removeGood } from '../services/chatService';
 import EditChatModal from '../components/EditChatModal';
+import ReportModal from '../components/ReportModal';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { getDefaultSearch } from '../services/searchService';
+import { blockUser } from '../services/blockService';
 
 type DrawerParamList = {
   Timeline: { searchFilters?: SearchFilters } | undefined;
@@ -54,6 +56,9 @@ const TimelineScreen = ({ navigation }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportChat, setReportChat] = useState<Chat | null>(null);
+  const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -554,6 +559,74 @@ const TimelineScreen = ({ navigation }: Props) => {
     setChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
   };
 
+  const handleOpenMenu = (chatId: string) => {
+    setMenuVisible(menuVisible === chatId ? null : chatId);
+  };
+
+  const handleReport = (chat: Chat) => {
+    setMenuVisible(null);
+    if (!isAuthenticatedUser) {
+      Alert.alert('Login Required', 'Please login to report content');
+      return;
+    }
+    if (isOwnChat(chat)) {
+      Alert.alert('Not Allowed', 'You cannot report your own content');
+      return;
+    }
+    setReportChat(chat);
+    setReportModalVisible(true);
+  };
+
+  const handleBlockUser = async (chat: Chat) => {
+    setMenuVisible(null);
+    if (!isAuthenticatedUser) {
+      Alert.alert('Login Required', 'Please login to block users');
+      return;
+    }
+    if (isOwnChat(chat)) {
+      Alert.alert('Not Allowed', 'You cannot block yourself');
+      return;
+    }
+
+    const userName = chat.user?.name || chat.user_name || 'this user';
+    Alert.alert(
+      'Block User',
+      `Are you sure you want to block ${userName}? Their content will no longer appear in your feed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const targetUserId = chat.user_id || chat.user?.id;
+              if (!targetUserId) {
+                Alert.alert('Error', 'Could not identify user');
+                return;
+              }
+              await blockUser(targetUserId);
+              // Remove all chats from the blocked user from the feed
+              setChats(prevChats =>
+                prevChats.filter(c => c.user_id !== targetUserId && c.user?.id !== targetUserId)
+              );
+              Alert.alert('User Blocked', `${userName} has been blocked. You can unblock them in Settings > Blocked Users.`);
+            } catch (error: any) {
+              if (error.status === 401) {
+                Alert.alert(
+                  'Session Expired',
+                  'Your session has expired. Please login again.',
+                  [{ text: 'OK', onPress: () => logout() }]
+                );
+              } else {
+                Alert.alert('Error', error.message || 'Failed to block user');
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderChatItem = (item: Chat) => (
     <TouchableOpacity
       key={item.id}
@@ -578,12 +651,36 @@ const TimelineScreen = ({ navigation }: Props) => {
           )}
         </View>
         <View style={styles.chatHeaderActions}>
-          {isOwnChat(item) && (
+          {isOwnChat(item) ? (
             <TouchableOpacity
               onPress={() => handleEditChat(item)}
               style={styles.editButton}>
               <Icon name="edit" size={18} color="#666" />
             </TouchableOpacity>
+          ) : (
+            <View style={styles.menuContainer}>
+              <TouchableOpacity
+                onPress={() => handleOpenMenu(item.id)}
+                style={styles.menuButton}>
+                <Icon name="more-vert" size={20} color="#666" />
+              </TouchableOpacity>
+              {menuVisible === item.id && (
+                <View style={styles.menuDropdown}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => handleReport(item)}>
+                    <Icon name="flag" size={18} color="#666" />
+                    <Text style={styles.menuItemText}>Report</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => handleBlockUser(item)}>
+                    <Icon name="block" size={18} color="#D9534F" />
+                    <Text style={[styles.menuItemText, styles.menuItemDanger]}>Block User</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           )}
         </View>
       </View>
@@ -773,6 +870,19 @@ const TimelineScreen = ({ navigation }: Props) => {
         onUpdate={handleChatUpdate}
         onDelete={handleChatDelete}
       />
+
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => {
+          setReportModalVisible(false);
+          setReportChat(null);
+        }}
+        contentType="chat"
+        contentId={reportChat?.id || ''}
+        onReportSuccess={() => {
+          // Optionally refresh or show feedback
+        }}
+      />
     </View>
   );
 };
@@ -889,6 +999,40 @@ const styles = StyleSheet.create({
   },
   editButton: {
     padding: 4,
+  },
+  menuContainer: {
+    position: 'relative',
+  },
+  menuButton: {
+    padding: 4,
+  },
+  menuDropdown: {
+    position: 'absolute',
+    top: 28,
+    right: 0,
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
+    minWidth: 140,
+    zIndex: 1000,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  menuItemText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  menuItemDanger: {
+    color: '#D9534F',
   },
   tagContainer: {
     flexDirection: 'row',

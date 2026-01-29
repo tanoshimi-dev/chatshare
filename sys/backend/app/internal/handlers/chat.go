@@ -16,12 +16,17 @@ import (
 )
 
 type ChatHandler struct {
-	db  *gorm.DB
-	cfg *config.Config
+	db            *gorm.DB
+	cfg           *config.Config
+	contentFilter *ContentFilterService
 }
 
 func NewChatHandler(db *gorm.DB, cfg *config.Config) *ChatHandler {
-	return &ChatHandler{db: db, cfg: cfg}
+	return &ChatHandler{
+		db:            db,
+		cfg:           cfg,
+		contentFilter: NewContentFilterService(db),
+	}
 }
 
 // syncChatCounts updates the favorite_count for a chat based on actual records
@@ -186,6 +191,14 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	}
 
 
+	// Check content against filter keywords
+	contentToCheck := req.Title + " " + req.Description
+	matchedKeyword := h.contentFilter.CheckContent(contentToCheck)
+	chatStatus := "active"
+	if matchedKeyword != "" {
+		chatStatus = "flagged"
+	}
+
 	chat := database.Chat{
 		ID:          uuid.New(),
 		UserID:      userID.(uuid.UUID),
@@ -196,7 +209,7 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		ChatType:    chatType,
 		IsPublic:    req.IsPublic,
 		IsLinkValid: true,
-		Status:      "active",
+		Status:      chatStatus,
 	}
 
 	if err := h.db.Create(&chat).Error; err != nil {
@@ -281,6 +294,14 @@ func (h *ChatHandler) ListChats(c *gin.Context) {
 	}
 
 	query := h.db.Model(&database.Chat{}).Where("is_public = ? AND status = ?", true, "active")
+
+	// Filter out chats from blocked users if user is authenticated
+	if currentUserID, exists := c.Get("user_id"); exists {
+		query = query.Where("user_id NOT IN (?)",
+			h.db.Table("blocked_users").
+				Select("blocked_id").
+				Where("blocker_id = ?", currentUserID))
+	}
 
 	// Filters
 	if categoryID := c.Query("category_id"); categoryID != "" {

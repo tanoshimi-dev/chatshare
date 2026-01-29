@@ -19,6 +19,8 @@ type User struct {
 	Role            string         `gorm:"size:50;default:'user'" json:"role"` // user, admin
 	Status          string         `gorm:"size:50;default:'active'" json:"status"` // active, suspended, deleted
 	LastLoginAt     *time.Time     `json:"last_login_at"`
+	ToSAcceptedAt   *time.Time     `json:"tos_accepted_at"`
+	ToSVersion      string         `gorm:"size:20" json:"tos_version"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -214,4 +216,48 @@ type SavedSearchSetting struct {
 	// Relationships
 	User        User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Category    *Category      `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+}
+
+// Report represents a content report submitted by a user
+type Report struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ReporterID  uuid.UUID  `gorm:"type:uuid;not null;index" json:"reporter_id"`
+	ReportedID  uuid.UUID  `gorm:"type:uuid;not null;index" json:"reported_id"`
+	ContentType string     `gorm:"size:20;not null" json:"content_type"` // chat, comment
+	ContentID   uuid.UUID  `gorm:"type:uuid;not null;index" json:"content_id"`
+	Reason      string     `gorm:"size:50;not null" json:"reason"`
+	Description string     `gorm:"size:1000" json:"description"`
+	Status      string     `gorm:"size:20;default:'pending'" json:"status"` // pending, resolved, dismissed
+	AdminNotes  string     `gorm:"size:1000" json:"admin_notes"`
+	ResolvedBy  *uuid.UUID `gorm:"type:uuid" json:"resolved_by"`
+	ResolvedAt  *time.Time `json:"resolved_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+
+	// Relationships
+	Reporter User `gorm:"foreignKey:ReporterID" json:"reporter,omitempty"`
+	Reported User `gorm:"foreignKey:ReportedID" json:"reported,omitempty"`
+}
+
+// BlockedUser represents a user blocking another user
+type BlockedUser struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	BlockerID uuid.UUID `gorm:"type:uuid;not null;index" json:"blocker_id"`
+	BlockedID uuid.UUID `gorm:"type:uuid;not null;index" json:"blocked_id"`
+	Reason    string    `gorm:"size:500" json:"reason"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// Relationships
+	Blocker User `gorm:"foreignKey:BlockerID" json:"blocker,omitempty"`
+	Blocked User `gorm:"foreignKey:BlockedID" json:"blocked,omitempty"`
+}
+
+// ContentFilter represents a keyword filter for content moderation
+type ContentFilter struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Keyword   string    `gorm:"size:100;uniqueIndex;not null" json:"keyword"`
+	Category  string    `gorm:"size:50" json:"category"` // profanity, hate, spam, etc.
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

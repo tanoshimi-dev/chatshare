@@ -6,6 +6,7 @@ import DetailScreen from '../screens/DetailScreen';
 import ShareDetailScreen from '../screens/ShareDetailScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { LineLoginWebView } from '../screens/LineLoginWebView';
+import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 import { useAuth } from '../contexts/AuthContext';
 
 export type RootStackParamList = {
@@ -13,6 +14,7 @@ export type RootStackParamList = {
   Main: undefined;
   Detail: undefined;
   ShareDetail: { url: string };
+  TermsOfService: undefined;
   LineLoginWebView: {
     url: string;
   };
@@ -21,13 +23,25 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, isAuthenticatedUser, tosAccepted, tosLoading, loading, logout, setTosAccepted } = useAuth();
 
-  if (loading) {
+  if (loading || tosLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
       </View>
+    );
+  }
+
+  // Show ToS screen for authenticated users who haven't accepted
+  const needsToSAcceptance = isLoggedIn && isAuthenticatedUser && !tosAccepted;
+
+  if (needsToSAcceptance) {
+    return (
+      <TermsOfServiceScreen
+        onAccept={() => setTosAccepted(true)}
+        onDecline={logout}
+      />
     );
   }
 
@@ -40,8 +54,8 @@ const RootNavigator = () => {
       {!isLoggedIn ? (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen 
-            name="LineLoginWebView" 
+          <Stack.Screen
+            name="LineLoginWebView"
             component={LineLoginWebView}
             options={{
               presentation: 'modal',
@@ -54,8 +68,8 @@ const RootNavigator = () => {
           <Stack.Screen name="Main" component={DrawerNavigator} />
           <Stack.Screen name="Detail" component={DetailScreen} />
           <Stack.Screen name="ShareDetail" component={ShareDetailScreen} />
-          <Stack.Screen 
-            name="LineLoginWebView" 
+          <Stack.Screen
+            name="LineLoginWebView"
             component={LineLoginWebView}
             options={{
               presentation: 'modal',

@@ -5,6 +5,7 @@ import (
 	"github.com/chatshare/backend/internal/firebase"
 	"github.com/chatshare/backend/internal/handlers"
 	"github.com/chatshare/backend/internal/middleware"
+	"github.com/chatshare/backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -17,6 +18,9 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 	r.Use(middleware.CORSMiddleware(cfg))
 	r.Use(middleware.RateLimitMiddleware(cfg, redisClient))
 
+	// Initialize services
+	emailService := services.NewEmailService(cfg)
+
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(db, cfg, redisClient, firebaseService)
 	userHandler := handlers.NewUserHandler(db, cfg)
@@ -26,6 +30,10 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 	commentHandler := handlers.NewCommentHandler(db, cfg)
 	adminHandler := handlers.NewAdminHandler(db, cfg)
 	savedSearchHandler := handlers.NewSavedSearchHandler(db, cfg)
+	tosHandler := handlers.NewToSHandler(db, cfg)
+	reportHandler := handlers.NewReportHandler(db, cfg, emailService)
+	blockHandler := handlers.NewBlockHandler(db, cfg, emailService)
+	contentFilterHandler := handlers.NewContentFilterHandler(db, cfg)
 
 	// Root redirect - redirect to production welcome page
 	r.GET("/", func(c *gin.Context) {
@@ -91,6 +99,16 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 		protected := v1.Group("")
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
+			// Terms of Service routes
+			tos := protected.Group("/tos")
+			{
+				tos.GET("/status", tosHandler.GetToSStatus)
+				tos.POST("/accept", tosHandler.AcceptToS)
+			}
+
+			// Reports routes
+			protected.POST("/reports", reportHandler.CreateReport)
+
 			// User routes
 			user := protected.Group("/user")
 			{
@@ -101,6 +119,13 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 				user.DELETE("/favorites/users/:target_user_id", userHandler.RemoveFavoriteUser)
 				// Delete own account
 				user.DELETE("/account", userHandler.DeleteAccount)
+
+				// Blocked users management
+				user.GET("/blocked-users", blockHandler.ListBlockedUsers)
+				user.GET("/blocked-users/ids", blockHandler.GetBlockedUserIDs)
+				user.POST("/blocked-users/:id", blockHandler.BlockUser)
+				user.DELETE("/blocked-users/:id", blockHandler.UnblockUser)
+				user.GET("/blocked-users/:id/check", blockHandler.IsUserBlocked)
 
 				// Saved search settings - specific routes MUST come before parameterized routes
 				user.POST("/search-settings", savedSearchHandler.CreateSavedSearch)
@@ -154,6 +179,17 @@ func SetupRouter(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, fir
 			admin.POST("/categories", adminHandler.CreateCategory)
 			admin.PUT("/categories/:id", adminHandler.UpdateCategory)
 			admin.DELETE("/categories/:id", adminHandler.DeleteCategory)
+
+			// Reports management
+			admin.GET("/reports", reportHandler.ListReports)
+			admin.GET("/reports/:id", reportHandler.GetReport)
+			admin.PUT("/reports/:id", reportHandler.UpdateReport)
+
+			// Content filters management
+			admin.GET("/content-filters", contentFilterHandler.ListContentFilters)
+			admin.POST("/content-filters", contentFilterHandler.CreateContentFilter)
+			admin.DELETE("/content-filters/:id", contentFilterHandler.DeleteContentFilter)
+			admin.PUT("/content-filters/:id/toggle", contentFilterHandler.ToggleContentFilter)
 
 			// Statistics
 			admin.GET("/statistics", adminHandler.GetStatistics)
