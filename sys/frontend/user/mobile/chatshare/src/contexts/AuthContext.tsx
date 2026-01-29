@@ -168,6 +168,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (currentUser) {
         setUser(currentUser);
         setIsLoggedIn(true);
+        // Check ToS status after refreshing user (needed for LINE login flow)
+        // Set tosLoading to prevent ToS screen flash
+        setTosLoading(true);
+        try {
+          const status = await getToSStatus();
+          setTosAccepted(status.accepted);
+        } catch (e) {
+          setTosAccepted(false);
+        } finally {
+          setTosLoading(false);
+        }
       } else {
         setUser(null);
         setIsLoggedIn(false);

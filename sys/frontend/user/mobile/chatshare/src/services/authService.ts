@@ -71,27 +71,27 @@ export interface AuthResponse {
 // Google Sign-In Flow following the sequence diagram
 export const signInWithGoogle = async (): Promise<AuthResponse> => {
   try {
-    console.log('Starting Google Sign-In...');
+    //console.log('Starting Google Sign-In...');
     
     // Sign in with Google using Google Sign-In SDK
     await GoogleSignin.hasPlayServices();
     const userInfo = await GoogleSignin.signIn();
     
-    console.log('Google Sign-In successful - Full response:', userInfo);
-    console.log('Server auth code from userInfo:', userInfo.serverAuthCode);
-    console.log('Server auth code from userInfo.data:', userInfo.data?.serverAuthCode);
+    //console.log('Google Sign-In successful - Full response:', userInfo);
+    //console.log('Server auth code from userInfo:', userInfo.serverAuthCode);
+    //console.log('Server auth code from userInfo.data:', userInfo.data?.serverAuthCode);
 
     // Get the server auth code to send to backend
     // In newer versions, serverAuthCode might be in userInfo.data
     const serverAuthCode = userInfo.serverAuthCode || userInfo.data?.serverAuthCode;
     
     if (!serverAuthCode) {
-      console.error('userInfo structure:', JSON.stringify(userInfo, null, 2));
+      //console.error('userInfo structure:', JSON.stringify(userInfo, null, 2));
       throw new Error('Failed to get server auth code from Google');
     }
 
     // Send the auth code to backend for validation and token generation
-    console.log('Sending auth code to backend...');
+    //console.log('Sending auth code to backend...');
     const callbackResponse = await fetch(`${API_BASE_URL}/auth/google/callback`, {
       method: 'POST',
       headers: {
@@ -102,16 +102,16 @@ export const signInWithGoogle = async (): Promise<AuthResponse> => {
       }),
     });
 
-    console.log('Backend response status:', callbackResponse.status);
+    //console.log('Backend response status:', callbackResponse.status);
 
     if (!callbackResponse.ok) {
       const errorText = await callbackResponse.text();
-      console.error('Backend error response:', errorText);
+      //console.error('Backend error response:', errorText);
       throw new Error(`Failed to authenticate with backend: ${callbackResponse.status}`);
     }
 
     const callbackData = await callbackResponse.json();
-    console.log('Backend response:', callbackData);
+    //console.log('Backend response:', callbackData);
 
     if (!callbackData.success) {
       throw new Error(callbackData.message || 'Authentication failed');
@@ -123,10 +123,10 @@ export const signInWithGoogle = async (): Promise<AuthResponse> => {
     await AsyncStorage.setItem('auth_token', authResponse.token);
     await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
 
-    console.log('Google authentication completed successfully');
+    //console.log('Google authentication completed successfully');
     return authResponse;
   } catch (error: any) {
-    console.error('Google Sign-In error:', error);
+    //console.error('Google Sign-In error:', error);
 
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
       throw new Error('Sign in cancelled');
@@ -139,157 +139,6 @@ export const signInWithGoogle = async (): Promise<AuthResponse> => {
     }
   }
 };
-
-// LINE Sign-In Flow (Web OAuth)
-// TODO: Implement full web-based OAuth flow when backend is ready
-// export const signInWithLine = async (): Promise<AuthResponse> => {
-//   try {
-//     console.log('Starting LINE Sign-In...');
-    
-//     const channelId = Config.LINE_CHANNEL_ID;
-//     if (!channelId) {
-//       throw new Error('LINE_CHANNEL_ID is not configured. Please add it to your .env file.');
-//     }
-
-//     // For now, create a mock user (will be replaced with actual OAuth flow)
-//     // In production, this will:
-//     // 1. Open LINE login page in WebView/Browser
-//     // 2. Get authorization code from callback
-//     // 3. Send to backend for token exchange
-//     // 4. Receive user profile from backend
-    
-//     console.log('LINE Sign-In - Mock mode (backend integration pending)');
-
-//     // Create mock auth response
-//     const mockUserId = `line_${Date.now()}`;
-//     const authResponse: AuthResponse = {
-//       token: `mock_token_line_${Date.now()}`,
-//       user: {
-//         id: mockUserId,
-//         email: `${mockUserId}@line.user`,
-//         name: 'LINE User (Demo)',
-//         avatar: '',
-//         provider: 'line',
-//         role: 'user',
-//         status: 'active',
-//         email_verified: false,
-//         created_at: new Date().toISOString(),
-//         updated_at: new Date().toISOString(),
-//       },
-//     };
-
-//     // Store token and user data
-//     await AsyncStorage.setItem('auth_token', authResponse.token);
-//     await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
-
-//     return authResponse;
-//   } catch (error: any) {
-//     console.error('LINE Sign-In error:', error);
-//     throw new Error(error.message || 'LINE sign-in failed');
-//   }
-// };
-
-// ORIGINAL BACKEND-VALIDATED FLOW (commented out for reference)
-/*
-export const signInWithGoogle = async (): Promise<AuthResponse> => {
-  try {
-    // Step 1: Request redirect URL with state from backend
-    console.log('Fetching redirect URL from:', `${API_BASE_URL}/auth/google/redirect`);
-    
-    const redirectResponse = await fetch(`${API_BASE_URL}/auth/google/redirect`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    }).catch((error) => {
-      console.error('Network error connecting to backend:', error);
-      throw new Error(`Cannot connect to backend at ${API_BASE_URL}. Is the server running? Error: ${error.message}`);
-    });
-
-    if (!redirectResponse.ok) {
-      const errorText = await redirectResponse.text();
-      console.error('Backend error response:', errorText);
-      throw new Error(`Backend error (${redirectResponse.status}): ${errorText}`);
-    }
-
-    const redirectData = await redirectResponse.json();
-    console.log('Redirect response:', redirectData);
-    
-    if (!redirectData.success) {
-      throw new Error(redirectData.message || 'Failed to get redirect URL');
-    }
-
-    const { state } = redirectData.data;
-
-    // Step 2: Store state in local storage (sessionStorage equivalent)
-    await AsyncStorage.setItem('oauth_state', state);
-
-    // Step 3: Sign in with Google using Google Sign-In SDK
-    await GoogleSignin.hasPlayServices();
-    const userInfo = await GoogleSignin.signIn();
-
-    // Step 4: Get authorization code
-    // Note: In React Native, we use the ID token instead of authorization code
-    // This is a different approach than web OAuth, but works with backend validation
-    const { serverAuthCode } = userInfo;
-
-    if (!serverAuthCode) {
-      throw new Error('Failed to get authorization code from Google');
-    }
-
-    // Step 5: Retrieve stored state
-    const storedState = await AsyncStorage.getItem('oauth_state');
-    if (!storedState) {
-      throw new Error('State token not found');
-    }
-
-    // Step 6: Send code and state to backend for validation
-    const callbackResponse = await fetch(`${API_BASE_URL}/auth/google/callback`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code: serverAuthCode,
-        state: storedState,
-      }),
-    });
-
-    // Step 7: Clean up state
-    await AsyncStorage.removeItem('oauth_state');
-
-    if (!callbackResponse.ok) {
-      throw new Error('Failed to authenticate with backend');
-    }
-
-    const callbackData = await callbackResponse.json();
-    if (!callbackData.success) {
-      throw new Error(callbackData.message || 'Authentication failed');
-    }
-
-    const authResponse: AuthResponse = callbackData.data;
-
-    // Step 8: Store token and user data
-    await AsyncStorage.setItem('auth_token', authResponse.token);
-    await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
-
-    return authResponse;
-  } catch (error: any) {
-    // Clean up state on error
-    await AsyncStorage.removeItem('oauth_state');
-
-    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      throw new Error('Sign in cancelled');
-    } else if (error.code === statusCodes.IN_PROGRESS) {
-      throw new Error('Sign in already in progress');
-    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      throw new Error('Play Services not available');
-    } else {
-      throw error;
-    }
-  }
-};
-*/
 
 // Get current authenticated user
 export const getCurrentUser = async (): Promise<User | null> => {
@@ -299,33 +148,10 @@ export const getCurrentUser = async (): Promise<User | null> => {
       return null;
     }
 
-    // For now, return stored user since backend endpoints aren't ready
-    // TODO: Uncomment when backend is implemented
-    /*
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      // Token might be invalid, clear it
-      await logout();
-      return null;
-    }
-
-    const data = await response.json();
-    if (!data.success) {
-      return null;
-    }
-
-    return data.data;
-    */
-    
     // For now, return stored user data
     return await getStoredUser();
   } catch (error) {
-    console.error('Error getting current user:', error);
+    //console.error('Error getting current user:', error);
     return null;
   }
 };
@@ -339,7 +165,7 @@ export const getStoredUser = async (): Promise<User | null> => {
     }
     return JSON.parse(userJson);
   } catch (error) {
-    console.error('Error getting stored user:', error);
+    //console.error('Error getting stored user:', error);
     return null;
   }
 };
@@ -349,7 +175,7 @@ export const getAuthToken = async (): Promise<string | null> => {
   try {
     return await AsyncStorage.getItem('auth_token');
   } catch (error) {
-    console.error('Error getting auth token:', error);
+    //console.error('Error getting auth token:', error);
     return null;
   }
 };
@@ -376,21 +202,8 @@ export const logout = async (): Promise<void> => {
     await AsyncStorage.removeItem('line_login_error');
     await AsyncStorage.removeItem('line_oauth_state');
 
-    // TODO: Uncomment when backend is ready
-    // Optionally call backend logout endpoint
-    /*
-    const token = await getAuthToken();
-    if (token) {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-    }
-    */
   } catch (error) {
-    console.error('Error during logout:', error);
+    //console.error('Error during logout:', error);
     // Still clear local data even if backend call fails
     await AsyncStorage.removeItem('auth_token');
     await AsyncStorage.removeItem('user');
@@ -475,9 +288,9 @@ export const authenticatedFetch = async (
 // LINE Sign-In Flow (Production)
 export const signInWithLine = async (): Promise<AuthResponse> => {
   try {
-    console.log("Starting LINE Sign-In...");
-    console.log("Using LINE Channel ID:", Config.LINE_CHANNEL_ID);
-    console.log("Using API Base URL:", API_BASE_URL);
+    //console.log("Starting LINE Sign-In...");
+    //console.log("Using LINE Channel ID:", Config.LINE_CHANNEL_ID);
+    //console.log("Using API Base URL:", API_BASE_URL);
     // Step 1: Get OAuth URL from backend
     const urlResponse = await fetch(`${API_BASE_URL}/auth/line/url`, {
       method: "GET",
@@ -547,7 +360,7 @@ export const signInWithLine = async (): Promise<AuthResponse> => {
       global.lineOAuthUrl = url;
     });
   } catch (error: any) {
-    console.error("LINE Sign-In error:", error);
+    //console.error("LINE Sign-In error:", error);
     throw new Error(error.message || "LINE sign-in failed");
   }
 };
@@ -581,18 +394,18 @@ export const signInWithApple = async (): Promise<AuthResponse> => {
       appleAuthRequestResponse.user
     );
 
-    console.log('Apple credential state:', credentialState, 'Expected:', appleAuth.State.AUTHORIZED);
+    //console.log('Apple credential state:', credentialState, 'Expected:', appleAuth.State.AUTHORIZED);
 
     // In development/simulator, the credential state check can be unreliable
     if (credentialState !== appleAuth.State.AUTHORIZED) {
       if (__DEV__) {
-        console.warn('Apple Sign-In credential state not AUTHORIZED, but continuing in dev mode');
+        //console.warn('Apple Sign-In credential state not AUTHORIZED, but continuing in dev mode');
       } else {
         throw new Error('Apple Sign-In authorization failed');
       }
     }
 
-    console.log('Apple Sign-In successful - Response:', appleAuthRequestResponse);
+    //console.log('Apple Sign-In successful - Response:', appleAuthRequestResponse);
 
     const { identityToken, user: appleUserId, fullName, email } = appleAuthRequestResponse;
 
@@ -619,9 +432,9 @@ export const signInWithApple = async (): Promise<AuthResponse> => {
       fullName: userName,
     };
 
-    console.log('Calling backend with Apple auth data...');
+    //console.log('Calling backend with Apple auth data...');
     const apiUrl = `${API_BASE_URL}/auth/apple/callback`;
-    console.log('API URL:', apiUrl);
+    //console.log('API URL:', apiUrl);
 
     // Make backend call using fetch
     const response = await fetch(apiUrl, {
@@ -632,16 +445,16 @@ export const signInWithApple = async (): Promise<AuthResponse> => {
       body: JSON.stringify(requestBody),
     });
 
-    console.log('Backend response status:', response.status);
+    //console.log('Backend response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Backend error:', errorText);
+      //console.error('Backend error:', errorText);
       throw new Error(`Backend error: ${response.status}`);
     }
 
     const callbackData = await response.json();
-    console.log('Backend response:', callbackData);
+    //console.log('Backend response:', callbackData);
 
     if (!callbackData.success) {
       throw new Error(callbackData.message || 'Authentication failed');
@@ -653,10 +466,10 @@ export const signInWithApple = async (): Promise<AuthResponse> => {
     await AsyncStorage.setItem('auth_token', authResponse.token);
     await AsyncStorage.setItem('user', JSON.stringify(authResponse.user));
 
-    console.log('Apple authentication completed successfully');
+    //console.log('Apple authentication completed successfully');
     return authResponse;
   } catch (error: any) {
-    console.error('Apple Sign-In error:', error);
+    //console.error('Apple Sign-In error:', error);
 
     if (error.code === appleAuth.Error.CANCELED) {
       throw new Error('Apple Sign-In was canceled');
@@ -681,7 +494,7 @@ export const isAppleSignInAvailable = async (): Promise<boolean> => {
   try {
     return appleAuth.isSupported;
   } catch (error) {
-    console.error('Error checking Apple Sign-In availability:', error);
+    //console.error('Error checking Apple Sign-In availability:', error);
     return false;
   }
 };
