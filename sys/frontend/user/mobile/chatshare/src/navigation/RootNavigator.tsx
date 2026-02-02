@@ -33,14 +33,15 @@ const RootNavigator = () => {
     );
   }
 
-  // Show ToS screen for authenticated users who haven't accepted
-  const needsToSAcceptance = isLoggedIn && isAuthenticatedUser && !tosAccepted;
+  // Show ToS screen for all logged-in users who haven't accepted (including demo users)
+  const needsToSAcceptance = isLoggedIn && !tosAccepted;
 
   if (needsToSAcceptance) {
     return (
       <TermsOfServiceScreen
         onAccept={() => setTosAccepted(true)}
         onDecline={logout}
+        isDemoUser={!isAuthenticatedUser}
       />
     );
   }

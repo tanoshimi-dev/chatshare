@@ -17,15 +17,22 @@ import { acceptToS } from '../services/tosService';
 interface Props {
   onAccept: () => void;
   onDecline?: () => void;
+  isDemoUser?: boolean;
 }
 
-const TermsOfServiceScreen: React.FC<Props> = ({ onAccept, onDecline }) => {
+const TermsOfServiceScreen: React.FC<Props> = ({ onAccept, onDecline, isDemoUser = false }) => {
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
   const handleAccept = async () => {
     if (!agreed) {
       Alert.alert('Agreement Required', 'Please check the box to agree to the Terms of Service.');
+      return;
+    }
+
+    // For demo users, skip the API call and just accept locally
+    if (isDemoUser) {
+      onAccept();
       return;
     }
 
