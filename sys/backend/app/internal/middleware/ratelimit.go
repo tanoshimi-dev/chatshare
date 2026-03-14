@@ -13,6 +13,11 @@ import (
 
 func RateLimitMiddleware(cfg *config.Config, redisClient *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if c.Request.URL.Path == "/health" {
+			c.Next()
+			return
+		}
+
 		ip := c.ClientIP()
 		key := fmt.Sprintf("rate_limit:%s", ip)
 
